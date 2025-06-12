@@ -188,7 +188,7 @@
                 markers.forEach(m => map.removeLayer(m));
                 markers.length = 0;
 
-                const piaFlights = (data.states || []).filter(f => f[1] && f[1].trim().startsWith("PIA"));
+                const piaFlights = (data.states || []).filter(f => f[1] && f[1].trim().startsWith("RYR"));
 
                 piaFlights.forEach(flight => {
                     const callsign = flight[1].trim();
