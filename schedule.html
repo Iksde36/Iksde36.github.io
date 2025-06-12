@@ -150,7 +150,6 @@
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
-        const markers = [];
 
         function addLandmark(lat, lng, html) {
             const icon = L.divIcon({
@@ -178,22 +177,23 @@
 
         addLandmark(48.8566, 2.3522, eiffelTowerHTML);
 
+        let markers = [];
+
         async function loadFlights() {
             try {
-                const proxy = "https://corsproxy.io/?https://opensky-network.org/api/states/all";
-                const response = await fetch(proxy);
+                const url = 'https://corsproxy.io/?https://opensky-network.org/api/states/all';
+                const response = await fetch(url);
                 const data = await response.json();
-                const states = data.states || [];
 
                 markers.forEach(m => map.removeLayer(m));
                 markers.length = 0;
 
-                const piaFlights = states.filter(f => f[1] && f[1].trim().startsWith("PIA"));
+                const piaFlights = (data.states || []).filter(f => f[1] && f[1].trim().startsWith("PIA"));
 
                 piaFlights.forEach(flight => {
-                    const callsign = flight[1]?.trim() || 'N/A';
-                    const lon = flight[5];
+                    const callsign = flight[1].trim();
                     const lat = flight[6];
+                    const lon = flight[5];
                     const alt = flight[7];
                     const spd = flight[9];
 
@@ -202,25 +202,27 @@
                             html: `<span class="material-symbols-outlined flight-icon">flight</span>`,
                             className: '',
                             iconSize: [36, 36],
-                            iconAnchor: [18, 18]
+                            iconAnchor: [18, 18],
+                            popupAnchor: [0, -18],
                         });
 
                         const marker = L.marker([lat, lon], { icon: icon }).addTo(map);
                         marker.bindPopup(`
-            <strong>${callsign}</strong><br>
-            Altitude: ${alt ? Math.round(alt) + ' m' : 'N/A'}<br>
-            Speed: ${spd ? Math.round(spd) + ' m/s' : 'N/A'}
-          `);
+          <strong>${callsign}</strong><br>
+          Altitude: ${alt ? Math.round(alt) + ' m' : 'N/A'}<br>
+          Speed: ${spd ? Math.round(spd) + ' m/s' : 'N/A'}
+        `);
                         markers.push(marker);
                     }
                 });
             } catch (e) {
-                console.error("Error loading flights:", e);
+                console.error('Error loading flights:', e);
             }
         }
 
         loadFlights();
         setInterval(loadFlights, 30000);
+
     </script>
 
 
