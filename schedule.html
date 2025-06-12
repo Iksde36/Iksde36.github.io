@@ -1,246 +1,122 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width">
-    <title>KOKOT VYJEBANY</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uikit@3.23.9/dist/css/uikit.min.css" />
-    <link rel="stylesheet" href="style.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Flight Map on GitHub Pages</title>
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/uikit@3.23.9/dist/css/uikit.min.css"
+  />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
+    rel="stylesheet"
+  />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet/dist/leaflet.css"
+  />
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
 
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    #map {
+      height: 100vh;
+      width: 100%;
+    }
 
-    <style>
-        html,
-        body {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-        }
-
-        #map {
-            height: calc(100vh - 80px);
-        }
-
-        .flight-icon {
-            font-size: 36px;
-            font-weight: 600;
-            user-select: none;
-            color: #006937 !important;
-            /* solid green */
-        }
-
-        /* Landmark icons container */
-        .landmark-icon {
-            width: 48px;
-            height: 48px;
-            pointer-events: none;
-            /* Disable interaction so no popups */
-            user-select: none;
-        }
-
-        /* Custom twin towers icon */
-        .twin-towers {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 6px;
-            height: 48px;
-        }
-
-        .tower {
-            width: 12px;
-            height: 40px;
-            background: #333;
-            border-radius: 2px;
-            box-shadow: 0 0 4px #666;
-        }
-    </style>
-
+    .flight-icon {
+      font-size: 36px;
+      font-weight: 600;
+      user-select: none;
+      color: #006937 !important;
+    }
+  </style>
 </head>
-
 <body>
-    <div uk-sticky="sel-target: .uk-navbar-container; cls-active: uk-navbar-sticky">
-        <nav class="uk-navbar-container">
-            <div class="uk-container uk-container-large">
-                <div uk-navbar>
-                    <div class="uk-navbar-left uk-margin-medium-left">
-                        <ul class="uk-navbar-nav">
-                            <li>
-                                <a class="uk-navbar-item uk-logo" href="index.html">
-                                    <img src="logo.svg" width="180" alt="Logo">
-                                </a>
-                            </li>
-                        </ul>
+  <div id="map"></div>
 
-                    </div>
-                    <div class="uk-navbar-center">
-                        <div class="uk-navbar-nav">
-                            <ul class="uk-navbar-nav">
-                                <li><a href="destinations.html"
-                                        class="nav-border uk-text-capitalize nav-item-custom ">Destinace</a>
-                                </li>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    const map = L.map("map", {
+      zoomControl: false,
+    }).setView([20, 0], 3);
 
-                                <li><a href="schedule.html" class="nav-border uk-text-capitalize nav-item-custom">Letový
-                                        řád</a>
-                                </li>
-                                <li><a href="flotila.html" class="nav-border uk-text-capitalize nav-item-custom">Naše
-                                        flotila</a>
-                                </li>
-                                <li><a href="http://71.19.146.161/"
-                                        class="nav-border uk-text-capitalize nav-item-custom">Kontakty</a>
-                                </li>
-                                <li><a href="about_us.html" class="nav-border uk-text-capitalize nav-item-custom">O
-                                        nás</a>
-                                </li>
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap contributors",
+    }).addTo(map);
 
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="uk-navbar-right uk-margin-medium-right">
-                        <div class="uk-navbar-nav">
-                            <ul class="uk-navbar-nav uk-flex">
-                                <a class="icon1 material-symbols-outlined">
-                                    search
-                                </a>
-                                <li class="uk-flex-inline uk-flex-middle">
-                                    <a href="#" class="uk-flex-middle uk-flex uk-flex-center vyska">
-                                        <div class="tlacitko" href="#">Register</div>
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-        </nav>
-    </div>
+    let markers = [];
 
+    async function loadFlights() {
+      try {
+        const proxyUrl =
+          "https://cors.bridged.cc/https://opensky-network.org/api/states/all";
 
-    <div id="map"></div>
+        const response = await fetch(proxyUrl, {
+          headers: {
+            "x-bridged-request-origin": "https://iksde36.github.io"
+          }
+        });
+        const data = await response.json();
 
-
-    <div class="uk-margin-large-top uk-margin-medium-bottom">
-        <img class="uk-width-1-1" src="wave.png" alt="Logo">
-        <div class="uk-flex-center footer-grid uk-grid-large" uk-grid>
-            <div class="">
-                <img src="logo.svg" width="180" alt="Logo">
-            </div>
-            <div class="uk-flex">
-                <span class="material-symbols-outlined icon1">
-                    location_on
-                </span>
-                <div class="uk-margin-small-left footer-text">
-                    50 Church St, New York, NY 10007, Spojené státy americké
-                </div>
-            </div>
-        </div>
-    </div>
-
-
-    <!-- UIkit JS -->
-    <script src="https://cdn.jsdelivr.net/npm/uikit@3.23.9/dist/js/uikit.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/uikit@3.23.9/dist/js/uikit-icons.min.js"></script>
-
-
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script>
-        const map = L.map('map', {
-            zoomControl: false
-        }).setView([20, 0], 3);
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
-
-
-        function addLandmark(lat, lng, html) {
-            const icon = L.divIcon({
-                html: html,
-                className: '',
-                iconSize: [48, 48],
-                iconAnchor: [24, 48],
-                popupAnchor: [0, -48]
-            });
-            L.marker([lat, lng], { icon: icon, interactive: false }).addTo(map);
+        if (!data.states) {
+          console.log("No states data returned");
+          return;
         }
 
-        const twinTowersHTML = `
-    <div class="landmark-icon twin-towers">
-      <div class="tower"></div>
-      <div class="tower"></div>
-    </div>`;
+        // Clear old markers
+        markers.forEach((m) => map.removeLayer(m));
+        markers = [];
 
-        addLandmark(40.7128, -74.0060, twinTowersHTML);
+        // Filter flights starting with "PIA" and valid coordinates
+        const piaFlights = data.states.filter(
+          (f) =>
+            f[1] &&
+            f[1].trim().startsWith("PIA") &&
+            typeof f[5] === "number" &&
+            !isNaN(f[5]) &&
+            typeof f[6] === "number" &&
+            !isNaN(f[6])
+        );
 
-        const eiffelTowerHTML = `
-    <div class="landmark-icon" style="font-size:48px; line-height:48px; text-align:center;">
-      🗼
-    </div>`;
+        console.log("Total flights:", data.states.length);
+        console.log("PIA flights found:", piaFlights.length);
 
-        addLandmark(48.8566, 2.3522, eiffelTowerHTML);
+        piaFlights.forEach((flight) => {
+          const callsign = flight[1].trim();
+          const lat = flight[6];
+          const lon = flight[5];
+          const alt = flight[7];
+          const spd = flight[9];
 
-        let markers = [];
+          const icon = L.divIcon({
+            html: `<span class="material-symbols-outlined flight-icon">flight</span>`,
+            className: "",
+            iconSize: [36, 36],
+            iconAnchor: [18, 18],
+            popupAnchor: [0, -18],
+          });
 
-        async function loadFlights() {
-            try {
-                const url = 'https://corsproxy.io/?https://opensky-network.org/api/states/all';
-                const response = await fetch(url);
-                const data = await response.json();
+          const marker = L.marker([lat, lon], { icon: icon }).addTo(map);
+          marker.bindPopup(`
+            <strong>${callsign}</strong><br>
+            Altitude: ${alt ? Math.round(alt) + " m" : "N/A"}<br>
+            Speed: ${spd ? Math.round(spd) + " m/s" : "N/A"}
+          `);
+          markers.push(marker);
+        });
+      } catch (e) {
+        console.error("Error loading flights:", e);
+      }
+    }
 
-                if (!data.states) {
-                    console.log('No states data returned');
-                    return;
-                }
-
-                markers.forEach(m => map.removeLayer(m));
-                markers.length = 0;
-
-                // Filter only flights with callsign starting with PIA and valid lat/lon
-                const piaFlights = data.states.filter(f =>
-                    f[1] && f[1].trim().startsWith("PIA") &&
-                    typeof f[5] === 'number' && !isNaN(f[5]) &&
-                    typeof f[6] === 'number' && !isNaN(f[6])
-                );
-
-                console.log('Total flights:', data.states.length);
-                console.log('PIA flights found:', piaFlights.length);
-
-                piaFlights.forEach(flight => {
-                    const callsign = flight[1].trim();
-                    const lat = flight[6];
-                    const lon = flight[5];
-                    const alt = flight[7];
-                    const spd = flight[9];
-
-                    const icon = L.divIcon({
-                        html: `<span class="material-symbols-outlined flight-icon">flight</span>`,
-                        className: '',
-                        iconSize: [36, 36],
-                        iconAnchor: [18, 18],
-                        popupAnchor: [0, -18],
-                    });
-
-                    const marker = L.marker([lat, lon], { icon: icon }).addTo(map);
-                    marker.bindPopup(`
-                <strong>${callsign}</strong><br>
-                Altitude: ${alt ? Math.round(alt) + ' m' : 'N/A'}<br>
-                Speed: ${spd ? Math.round(spd) + ' m/s' : 'N/A'}
-            `);
-                    markers.push(marker);
-                });
-            } catch (e) {
-                console.error('Error loading flights:', e);
-            }
-        }
-
-        loadFlights();
-        setInterval(loadFlights, 30000);
-
-    </script>
-
-
+    loadFlights();
+    setInterval(loadFlights, 30000);
+  </script>
 </body>
-
 </html>
