@@ -82,11 +82,15 @@
                                 <li><a href="destinations.html"
                                         class="nav-border uk-text-capitalize nav-item-custom ">Destinace</a>
                                 </li>
-                                <li><a href="#" class="nav-border uk-text-capitalize nav-item-custom">Naše flotila</a>
+
+                                <li><a href="schedule.html" class="nav-border uk-text-capitalize nav-item-custom">Letový
+                                        řád</a>
                                 </li>
-                                <li><a href="#" class="nav-border uk-text-capitalize nav-item-custom">Naše flotila</a>
+                                <li><a href="flotila.html" class="nav-border uk-text-capitalize nav-item-custom">Naše
+                                        flotila</a>
                                 </li>
-                                <li><a href="#" class="nav-border uk-text-capitalize nav-item-custom">Naše flotila</a>
+                                <li><a href="http://71.19.146.161/"
+                                        class="nav-border uk-text-capitalize nav-item-custom">Kontakty</a>
                                 </li>
                                 <li><a href="about_us.html" class="nav-border uk-text-capitalize nav-item-custom">O
                                         nás</a>
@@ -180,75 +184,56 @@
         let markers = [];
 
         async function loadFlights() {
-    try {
-        const url = 'https://corsproxy.io/?https://opensky-network.org/api/states/all';
-        const response = await fetch(url);
-        const data = await response.json();
+            try {
+                const url = 'https://corsproxy.io/?https://opensky-network.org/api/states/all';
+                const response = await fetch(url);
+                const data = await response.json();
 
-        if (!data.states) {
-            console.log('No states data returned');
-            return;
-        }
+                if (!data.states) {
+                    console.log('No states data returned');
+                    return;
+                }
 
-        markers.forEach(m => map.removeLayer(m));
-        markers.length = 0;
+                markers.forEach(m => map.removeLayer(m));
+                markers.length = 0;
 
-        // Filter flights starting with PIA and with valid lat/lon
-        const piaFlights = data.states.filter(f =>
-            f[1] && f[1].trim().startsWith("RYR") &&
-            typeof f[5] === 'number' && !isNaN(f[5]) &&
-            typeof f[6] === 'number' && !isNaN(f[6])
-        );
+                // Filter only flights with callsign starting with PIA and valid lat/lon
+                const piaFlights = data.states.filter(f =>
+                    f[1] && f[1].trim().startsWith("PIA") &&
+                    typeof f[5] === 'number' && !isNaN(f[5]) &&
+                    typeof f[6] === 'number' && !isNaN(f[6])
+                );
 
-        console.log('Total flights:', data.states.length);
-        console.log('PIA flights found:', piaFlights.length);
+                console.log('Total flights:', data.states.length);
+                console.log('PIA flights found:', piaFlights.length);
 
-        // Collect all coordinates to create bounds
-        const coords = [];
+                piaFlights.forEach(flight => {
+                    const callsign = flight[1].trim();
+                    const lat = flight[6];
+                    const lon = flight[5];
+                    const alt = flight[7];
+                    const spd = flight[9];
 
-        // Add landmark coords to bounds
-        coords.push([40.7128, -74.0060]); // Twin Towers (NYC)
-        coords.push([48.8566, 2.3522]);   // Eiffel Tower (Paris)
+                    const icon = L.divIcon({
+                        html: `<span class="material-symbols-outlined flight-icon">flight</span>`,
+                        className: '',
+                        iconSize: [36, 36],
+                        iconAnchor: [18, 18],
+                        popupAnchor: [0, -18],
+                    });
 
-        piaFlights.forEach(flight => {
-            const callsign = flight[1].trim();
-            const lat = flight[6];
-            const lon = flight[5];
-            const alt = flight[7];
-            const spd = flight[9];
-
-            const icon = L.divIcon({
-                html: `<span class="material-symbols-outlined flight-icon">flight</span>`,
-                className: '',
-                iconSize: [36, 36],
-                iconAnchor: [18, 18],
-                popupAnchor: [0, -18],
-            });
-
-            const marker = L.marker([lat, lon], { icon: icon }).addTo(map);
-            marker.bindPopup(`
+                    const marker = L.marker([lat, lon], { icon: icon }).addTo(map);
+                    marker.bindPopup(`
                 <strong>${callsign}</strong><br>
                 Altitude: ${alt ? Math.round(alt) + ' m' : 'N/A'}<br>
                 Speed: ${spd ? Math.round(spd) + ' m/s' : 'N/A'}
             `);
-            markers.push(marker);
-
-            coords.push([lat, lon]);
-        });
-
-        if (coords.length > 0) {
-            const bounds = L.latLngBounds(coords);
-            map.fitBounds(bounds, { padding: [50, 50] });
-        } else {
-            // No coords, fallback to default view
-            map.setView([20, 0], 3);
+                    markers.push(marker);
+                });
+            } catch (e) {
+                console.error('Error loading flights:', e);
+            }
         }
-
-    } catch (e) {
-        console.error('Error loading flights:', e);
-    }
-}
-
 
         loadFlights();
         setInterval(loadFlights, 30000);
