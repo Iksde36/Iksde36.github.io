@@ -13,8 +13,49 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 
     <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+
         #map {
             height: calc(100vh - 80px);
+        }
+
+        .flight-icon {
+            font-size: 36px;
+            font-weight: 600;
+            user-select: none;
+            color: #006937 !important;
+            /* solid green */
+        }
+
+        /* Landmark icons container */
+        .landmark-icon {
+            width: 48px;
+            height: 48px;
+            pointer-events: none;
+            /* Disable interaction so no popups */
+            user-select: none;
+        }
+
+        /* Custom twin towers icon */
+        .twin-towers {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            height: 48px;
+        }
+
+        .tower {
+            width: 12px;
+            height: 40px;
+            background: #333;
+            border-radius: 2px;
+            box-shadow: 0 0 4px #666;
         }
     </style>
 
@@ -100,60 +141,86 @@
 
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
     <script>
-        const USERNAME = 'iksde-api-client'; // Replace with your OpenSky username
-        const PASSWORD = 'IQFfwv2Dgu2z07LTTc8ZiNbZzoPikNJJ'; // Replace with your OpenSky password
-
         const map = L.map('map', {
-            zoomControl: false,    // hide zoom buttons
-            scrollWheelZoom: false,
-            doubleClickZoom: false,
-            boxZoom: false,
-            touchZoom: false,
-            dragging: false,
-            zoomSnap: 1,
-            minZoom: 3,
-            maxZoom: 3
-        }).setView([20, 0], 2);
+            zoomControl: false
+        }).setView([20, 0], 3);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
-        let markers = [];
+        const markers = [];
 
-        async function loadPIAFlights() {
-            const response = await fetch('https://opensky-network.org/api/states/all', {
-                headers: {
-                    'Authorization': 'Basic ' + btoa(USERNAME + ":" + PASSWORD)
-                }
+        function addLandmark(lat, lng, html) {
+            const icon = L.divIcon({
+                html: html,
+                className: '',
+                iconSize: [48, 48],
+                iconAnchor: [24, 48],
+                popupAnchor: [0, -48]
             });
-
-            const data = await response.json();
-            const flights = data.states.filter(s => s[1] && s[1].trim().startsWith("PIA"));
-
-            // Clear old markers
-            markers.forEach(marker => map.removeLayer(marker));
-            markers = [];
-
-            // Add new markers
-            flights.forEach(f => {
-                const callsign = f[1]?.trim();
-                const lon = f[5];
-                const lat = f[6];
-                const alt = f[7];
-
-                if (lat !== null && lon !== null) {
-                    const marker = L.marker([lat, lon]).addTo(map)
-                        .bindPopup(`<strong>${callsign}</strong><br>Altitude: ${alt?.toFixed(0)} m`);
-                    markers.push(marker);
-                }
-            });
+            L.marker([lat, lng], { icon: icon, interactive: false }).addTo(map);
         }
 
-        loadPIAFlights();
-        setInterval(loadPIAFlights, 15000); // Refresh every 15s
+        const twinTowersHTML = `
+    <div class="landmark-icon twin-towers">
+      <div class="tower"></div>
+      <div class="tower"></div>
+    </div>`;
+
+        addLandmark(40.7128, -74.0060, twinTowersHTML);
+
+        const eiffelTowerHTML = `
+    <div class="landmark-icon" style="font-size:48px; line-height:48px; text-align:center;">
+      🗼
+    </div>`;
+
+        addLandmark(48.8566, 2.3522, eiffelTowerHTML);
+
+        async function loadFlights() {
+            try {
+                const proxy = "https://corsproxy.io/?https://opensky-network.org/api/states/all";
+                const response = await fetch(proxy);
+                const data = await response.json();
+                const states = data.states || [];
+
+                markers.forEach(m => map.removeLayer(m));
+                markers.length = 0;
+
+                const piaFlights = states.filter(f => f[1] && f[1].trim().startsWith("PIA"));
+
+                piaFlights.forEach(flight => {
+                    const callsign = flight[1]?.trim() || 'N/A';
+                    const lon = flight[5];
+                    const lat = flight[6];
+                    const alt = flight[7];
+                    const spd = flight[9];
+
+                    if (typeof lat === 'number' && typeof lon === 'number') {
+                        const icon = L.divIcon({
+                            html: `<span class="material-symbols-outlined flight-icon">flight</span>`,
+                            className: '',
+                            iconSize: [36, 36],
+                            iconAnchor: [18, 18]
+                        });
+
+                        const marker = L.marker([lat, lon], { icon: icon }).addTo(map);
+                        marker.bindPopup(`
+            <strong>${callsign}</strong><br>
+            Altitude: ${alt ? Math.round(alt) + ' m' : 'N/A'}<br>
+            Speed: ${spd ? Math.round(spd) + ' m/s' : 'N/A'}
+          `);
+                        markers.push(marker);
+                    }
+                });
+            } catch (e) {
+                console.error("Error loading flights:", e);
+            }
+        }
+
+        loadFlights();
+        setInterval(loadFlights, 30000);
     </script>
 
 
