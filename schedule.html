@@ -82,11 +82,15 @@
                                 <li><a href="destinations.html"
                                         class="nav-border uk-text-capitalize nav-item-custom ">Destinace</a>
                                 </li>
-                                <li><a href="#" class="nav-border uk-text-capitalize nav-item-custom">Naše flotila</a>
+
+                                <li><a href="schedule.html" class="nav-border uk-text-capitalize nav-item-custom">Letový
+                                        řád</a>
                                 </li>
-                                <li><a href="#" class="nav-border uk-text-capitalize nav-item-custom">Naše flotila</a>
+                                <li><a href="flotila.html" class="nav-border uk-text-capitalize nav-item-custom">Naše
+                                        flotila</a>
                                 </li>
-                                <li><a href="#" class="nav-border uk-text-capitalize nav-item-custom">Naše flotila</a>
+                                <li><a href="http://71.19.146.161/"
+                                        class="nav-border uk-text-capitalize nav-item-custom">Kontakty</a>
                                 </li>
                                 <li><a href="about_us.html" class="nav-border uk-text-capitalize nav-item-custom">O
                                         nás</a>
@@ -146,11 +150,9 @@
             zoomControl: false
         }).setView([20, 0], 2);
 
-
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
-
 
         function addLandmark(lat, lng, html) {
             const icon = L.divIcon({
@@ -160,7 +162,10 @@
                 iconAnchor: [24, 48],
                 popupAnchor: [0, -48]
             });
-            L.marker([lat, lng], { icon: icon, interactive: false }).addTo(map);
+            L.marker([lat, lng], {
+                icon: icon,
+                interactive: false
+            }).addTo(map);
         }
 
         const twinTowersHTML = `
@@ -182,7 +187,7 @@
 
         async function loadFlights() {
             try {
-                const url = 'https://corsproxy.io/?https://opensky-network.org/api/states/all';
+                const url = 'https://api.allorigins.win/raw?url=https://opensky-network.org/api/states/all';
                 const response = await fetch(url);
                 const data = await response.json();
 
@@ -194,12 +199,14 @@
                 markers.forEach(m => map.removeLayer(m));
                 markers.length = 0;
 
-                // Filter only flights with callsign starting with PIA and valid lat/lon
-                const piaFlights = data.states.filter(f =>
-                    f[1] && f[1].trim().startsWith("PIA") &&
-                    typeof f[5] === 'number' && !isNaN(f[5]) &&
-                    typeof f[6] === 'number' && !isNaN(f[6])
-                );
+                // Filter only flights with callsign starting with PIA (case-insensitive) and valid lat/lon
+                const piaFlights = data.states.filter(f => {
+                    if (!f[1]) return false;
+                    const callsign = f[1].trim().toUpperCase();
+                    return callsign.startsWith("PIA") &&
+                        typeof f[5] === 'number' && !isNaN(f[5]) &&
+                        typeof f[6] === 'number' && !isNaN(f[6]);
+                });
 
                 console.log('Total flights:', data.states.length);
                 console.log('PIA flights found:', piaFlights.length);
@@ -219,7 +226,9 @@
                         popupAnchor: [0, -18],
                     });
 
-                    const marker = L.marker([lat, lon], { icon: icon }).addTo(map);
+                    const marker = L.marker([lat, lon], {
+                        icon: icon
+                    }).addTo(map);
                     marker.bindPopup(`
                 <strong>${callsign}</strong><br>
                 Altitude: ${alt ? Math.round(alt) + ' m' : 'N/A'}<br>
