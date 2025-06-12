@@ -1,0 +1,327 @@
+.vyska {
+    min-height: 30px !important;
+    background: #006937;
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+    border: none !important;
+    box-shadow: none !important;
+    font-weight: 600;
+}
+
+.tlacitko {
+
+    color: #ffffff !important;
+    font-size: 12px !important;
+}
+
+.icon1 {
+    color: #006937 !important;
+    font-weight: 600 !important;
+    padding-top: 3px;
+}
+
+.icon1:hover {
+    text-decoration: none !important;
+}
+
+.nav-border {
+    position: relative;
+    display: inline-block;
+}
+
+.nav-border::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 0;
+    background: #aa9113;
+    transition: 0.3s;
+}
+
+.nav-border:hover::after {
+    height: 0.5rem;
+}
+
+
+.overlay-main {
+    width: 1100px;
+}
+
+.overlay-second {
+    background: rgb(255, 255, 255);
+    height: 155px;
+}
+
+.overlay-second-title {
+    padding-top: 22px;
+    color: #006937 !important;
+    font-size: 1.55rem;
+    font-weight: 600;
+}
+
+.overlay-second-subtitle {
+    padding-top: 15px;
+    color: #000000 !important;
+    font-size: 1.15rem;
+    font-weight: 400;
+}
+
+.overlay-second-subsubtitle {
+    padding-top: 5px !important;
+    padding-top: 10px;
+    color: #000000 !important;
+    font-size: 1rem;
+    font-weight: 400;
+}
+
+
+.overlay-main-grid {
+    margin-left: -2px;
+    margin-right: -2px;
+}
+
+.overlay-main-grid>.uk-width-expand {
+    padding-left: 2px;
+    padding-right: 2px;
+}
+
+.overlay-main-button {
+    min-height: 45px !important;
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+    border: none !important;
+    box-shadow: none !important;
+    font-size: 16px !important;
+    font-weight: 700;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+}
+
+.overlay-button-inactive {
+    background: #aa9113;
+    color: #ffffff !important;
+}
+
+.overlay-button-active {
+    background: #ffffff;
+    color: #aa9113 !important;
+}
+
+
+.overlay-text-main {
+    font-size: 1rem;
+    font-family: 'Inter', serif;
+    font-weight: 300;
+    color: #000000 !important;
+}
+
+
+.slider-panel {
+    height: calc(100vh - 80px);
+    position: relative;
+    overflow: hidden;
+}
+
+
+.slider-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+    outline: none !important;
+}
+
+
+
+.slider-button {
+    display: block;
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.slider-text {
+    position: absolute;
+    bottom: 20%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white !important;
+    text-align: center;
+    width: 100%;
+    padding: 0 20px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5) !important;
+}
+
+.slider-title {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.slider-subtitle {
+    font-size: 1.5rem;
+}
+
+
+.slider-panel:hover .slider-image {
+    transform: scale(1.05);
+    transition: transform 0.3s ease;
+}
+
+
+.nav-item-custom {
+    font-size: 1rem !important;
+    font-weight: 600;
+    color: #006937 !important;
+    font-family: Helvetica, serif !important;
+}
+
+.pia-text {
+    color: #006937 !important;
+    font-weight: 500 !important;
+    font-size: 2.5rem !important;
+    font-family: Helvetica, serif !important;
+}
+
+.pia-text-destinations {
+    color: #006937 !important;
+    font-weight: 600 !important;
+    font-size: 26px !important;
+    font-family: Helvetica, serif !important;
+}
+
+.destinations-title {
+    color: #aa9113 !important;
+    font-family: Helvetica, serif !important;
+    padding-left: 50px;
+    font-size: 30px;
+    font-weight: 600;
+}
+
+.destinations-text {
+    color: #000000 !important;
+    font-size: 1.25rem;
+    font-weight: 400;
+}
+
+
+
+
+#paris,
+#newyork,
+#pakistan,
+#brno {
+  position: relative;
+}
+
+#paris::before,
+#newyork::before,
+#pakistan::before,
+#brno::before {
+  content: "";
+  display: block;
+  height: 100px;        /* výška navigační lišty */
+  margin-top: -100px;   /* negativní okraj stejné výšky */
+  visibility: hidden;
+}
+
+
+
+
+.pia-text-small {
+    color: #006937 !important;
+    font-weight: 600 !important;
+    font-size: 1rem !important;
+    font-family: Helvetica, serif !important;
+}
+
+.pia-background {
+    background-color: rgba(170, 145, 19, 0.1);
+}
+
+.pia-background .uk-card-default {
+    border-radius: 20px;
+    background-color: #fff;
+    transition: box-shadow 0.3s ease;
+}
+
+.pia-background .uk-card-default:hover {
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
+}
+
+.card-text {
+    color: black;
+    transition: all 0.6s ease;
+}
+
+.uk-card-default:hover .card-text {
+    color: #aa9113 !important;
+}
+
+
+
+
+.about-text {
+    padding-left: 50px;
+    font-size: 1.15rem;
+    font-family: 'Inter', serif;
+    font-weight: 400;
+    color: #000000 !important;
+}
+
+
+
+.nabidky {
+    overflow: show;
+}
+
+
+.slider-image2 {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 6px;
+    transition: box-shadow 0.3s ease, filter 0.3s ease;
+}
+
+.overlay {
+    background: #AA9113D1;
+}
+
+.overlay-text {
+    color: white !important;
+    font-size: 1rem;
+    font-family: 'Inter', serif;
+    font-weight: 300;
+    color: #ffffff !important;
+}
+
+.overlay-odstavec {
+    margin-left: 10px;
+}
+
+.overlay-title {
+    font-weight: 500 !important;
+    font-size: 1.2rem !important;
+}
+
+.overlay-subtitle {
+    font-weight: 400 !important;
+    font-size: 1.1rem !important;
+    margin-top: 6px;
+}
+
+.nabidky:hover .slider-image2 {
+    box-shadow: 0 0 28px rgba(0, 0, 0, 0.3);
+    filter: brightness(80%);
+}
+
+.footer-text {
+    margin-top: 3.5px;
+    font-size: 1rem;
+    font-family: 'Inter', serif;
+    font-weight: 300;
+    color: #000000 !important;
+}

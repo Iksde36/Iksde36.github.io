@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>KOKOT VYJEBANY</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uikit@3.23.9/dist/css/uikit.min.css" />
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+</head>
+<!-- AmCharts -->
+<script src="https://cdn.amcharts.com/lib/3/ammap.js"></script>
+<script src="https://cdn.amcharts.com/lib/3/maps/js/worldLow.js"></script>
+<script src="https://cdn.amcharts.com/lib/3/themes/light.js"></script>
+
+<style>
+  body {
+    margin: 0;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #fff;
+  }
+
+  #map-container {
+    height: 650px;
+    position: relative;
+  }
+
+  #mapdiv {
+    width: 100%;
+    height: 100%;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+  }
+
+  #toggleButtons {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+    padding: 10px 14px;
+    font-weight: 600;
+    font-size: 16px;
+    display: flex;
+    gap: 12px;
+    user-select: none;
+  }
+
+  #toggleButtons button {
+    background: transparent;
+    border: none;
+    color: #006838;
+    cursor: pointer;
+    padding: 8px 16px;
+    border-bottom: 3px solid transparent;
+    transition: all 0.25s ease;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  }
+
+  #toggleButtons button.active,
+  #toggleButtons button:hover {
+    border-color: #006838;
+    color: #004d27;
+    font-weight: 700;
+  }
+
+  /* Map area styling */
+  .ammap-area {
+    fill: #f9f9f9 !important;
+    stroke: #c8c8c8 !important;
+    stroke-width: 0.8 !important;
+  }
+
+  /* City labels */
+  .ammap-image-label {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    fill: #006838 !important;
+    text-shadow: 1px 1px 2px white, -1px -1px 2px white,
+      1px -1px 2px white, -1px 1px 2px white !important;
+  }
+</style>
+</head>
+
+<body>
+
+  <div uk-sticky="sel-target: .uk-navbar-container; cls-active: uk-navbar-sticky">
+    <nav class="uk-navbar-container">
+      <div class="uk-container uk-container-large">
+        <div uk-navbar>
+          <div class="uk-navbar-left uk-margin-medium-left">
+            <ul class="uk-navbar-nav">
+              <li>
+                <a class="uk-navbar-item uk-logo " href="index.html">
+                  <img class="" src="logo.svg" width="180" alt="Logo">
+                </a>
+              </li>
+            </ul>
+
+          </div>
+          <div class="uk-navbar-center">
+            <div class="uk-navbar-nav">
+              <ul class="uk-navbar-nav">
+                <li><a href="destinations.html" class="nav-border uk-text-capitalize nav-item-custom ">Destinace</a>
+                </li>
+                <li><a href="#" class="nav-border uk-text-capitalize nav-item-custom">Naše flotila</a>
+                </li>
+                <li><a href="#" class="nav-border uk-text-capitalize nav-item-custom">Naše flotila</a>
+                </li>
+                <li><a href="#" class="nav-border uk-text-capitalize nav-item-custom">Naše flotila</a>
+                </li>
+                <li><a href="#" class="nav-border uk-text-capitalize nav-item-custom">O nás</a>
+                </li>
+
+              </ul>
+            </div>
+          </div>
+
+
+
+          <div class="uk-navbar-right uk-margin-medium-right">
+            <div class="uk-navbar-nav">
+              <ul class="uk-navbar-nav uk-flex">
+                <a class="icon1 material-symbols-outlined">
+                  search
+                </a>
+                <li class="uk-flex-inline uk-flex-middle">
+                  <a href="#" class="uk-flex-middle uk-flex uk-flex-center vyska">
+                    <div class="tlacitko" href="#">Register</div>
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+    </nav>
+  </div>
+
+  <div class="uk-container uk-padding-small" id="map-container">
+    <div id="mapdiv"></div>
+
+    <div id="toggleButtons">
+      <button id="btnDomestic">Domestic</button>
+      <button id="btnInternational" class="active">International</button>
+    </div>
+
+  </div>
+
+  <div class="uk-container uk-padding-small">
+    <div id="paris">
+      <div class="pia-text-destinations uk-margin uk-margin-medium-top">
+        Naše vybrané destinace
+      </div>
+      <div class="destinations-title uk-margin-large-bottom">
+        Paříž
+      </div>
+    </div>
+
+  </div>
+
+  <div class="uk-margin-large-top uk-margin-medium-bottom">
+    <img class="uk-width-1-1" src="wave.png" alt="Logo">
+    <div class="uk-flex-center footer-grid uk-grid-large" uk-grid>
+      <div class="">
+        <img src="logo.svg" width="180" alt="Logo">
+      </div>
+      <div class="uk-flex">
+        <span class="material-symbols-outlined icon1">
+          location_on
+        </span>
+        <div class="uk-margin-small-left footer-text">
+          50 Church St, New York, NY 10007, Spojené státy americké
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+  <script src="https://cdn.jsdelivr.net/npm/uikit@3.23.9/dist/js/uikit.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/uikit@3.23.9/dist/js/uikit-icons.min.js"></script>
+
+  <script>
+    var domesticCities = [
+      { title: "Islamabad", latitude: 33.738045, longitude: 73.084488 },
+      { title: "Karachi", latitude: 24.8607, longitude: 67.0011 },
+      { title: "Lahore", latitude: 31.5497, longitude: 74.3436 },
+      { title: "Peshawar", latitude: 34.0151, longitude: 71.5249 },
+      { title: "Quetta", latitude: 30.1798, longitude: 66.9750 },
+      { title: "Multan", latitude: 30.1575, longitude: 71.5249 },
+      { title: "Faisalabad", latitude: 31.4181, longitude: 73.0770 },
+      { title: "Sialkot", latitude: 32.4945, longitude: 74.5229 },
+      { title: "Gilgit", latitude: 35.9208, longitude: 74.3083 },
+      { title: "Skardu", latitude: 35.3306, longitude: 75.6346 },
+      { title: "Gwadar", latitude: 25.1260, longitude: 62.3229 },
+      { title: "Turbat", latitude: 26.0048, longitude: 63.0500 },
+      { title: "Zhob", latitude: 31.3406, longitude: 69.4486 },
+      { title: "Jacobabad", latitude: 28.2812, longitude: 68.4372 },
+      { title: "RYK", latitude: 28.4200, longitude: 70.2983 }, // Rahim Yar Khan
+      { title: "Nawabshah", latitude: 26.2433, longitude: 68.4108 }
+    ];
+
+    var internationalCities = [
+      { title: "Dubai", latitude: 25.2048, longitude: 55.2708 },
+      { title: "Sharjah", latitude: 25.3463, longitude: 55.4209 },
+      { title: "Muscat", latitude: 23.5880, longitude: 58.3829 },
+      { title: "Jeddah", latitude: 21.4858, longitude: 39.1925 },
+      { title: "Riyadh", latitude: 24.7136, longitude: 46.6753 },
+      { title: "Dammam", latitude: 26.4207, longitude: 50.0888 },
+      { title: "Medina", latitude: 24.5247, longitude: 39.5692 },
+      { title: "Kabul", latitude: 34.5553, longitude: 69.2075 },
+      { title: "Doha", latitude: 25.2854, longitude: 51.5310 },
+      { title: "Istanbul", latitude: 41.0082, longitude: 28.9784 },
+      { title: "London", latitude: 51.5074, longitude: -0.1278 },
+      { title: "Manchester", latitude: 53.4808, longitude: -2.2426 },
+      { title: "Toronto", latitude: 43.65107, longitude: -79.347015 },
+      { title: "Montreal", latitude: 45.5017, longitude: -73.5673 },
+      { title: "Chicago", latitude: 41.8781, longitude: -87.6298 },
+      { title: "NYC", latitude: 40.7128, longitude: -74.0060 }, // New York
+      { title: "Tokyo", latitude: 35.6762, longitude: 139.6503 }
+    ];
+
+    var map;
+    var currentView = 'international';
+
+    function makeCityImage(city) {
+      return {
+        title: city.title,
+        latitude: city.latitude,
+        longitude: city.longitude,
+        svgPath: "M12.3,0c-1.1,0-2.1,0.6-2.6,1.5l-7,14c-0.3,0.7-0.1,1.5,0.5,2s1.3,0.6,2,0.3l6.8-3.1l3.1,6.8c0.3,0.7,1,1.1,1.8,1.1c0.1,0,0.2,0,0.3,0c1.1-0.1,1.9-1.1,1.8-2.2l-7-14C13.9,0.5,13.1,0,12.3,0z",
+        color: "#006838",
+        scale: 0.5,
+        label: city.title,
+        labelColor: "#006838",
+        labelFontSize: 12,
+        labelBold: true,
+        labelRollOverColor: "#004d27",
+        labelOutlineColor: "#fff",
+        labelOutlineThickness: 2,
+        labelShiftY: 2
+      };
+    }
+
+    function calculateZoomLevel(cities) {
+      var minLat = Math.min.apply(null, cities.map(c => c.latitude));
+      var maxLat = Math.max.apply(null, cities.map(c => c.latitude));
+      var minLon = Math.min.apply(null, cities.map(c => c.longitude));
+      var maxLon = Math.max.apply(null, cities.map(c => c.longitude));
+
+      var latDiff = maxLat - minLat;
+      var lonDiff = maxLon - minLon;
+      var maxDiff = Math.max(latDiff, lonDiff);
+
+      // Custom zoom levels for domestic vs international
+      if (currentView === 'domestic') {
+        if (maxDiff > 15) return 3.5;
+        if (maxDiff > 10) return 4;
+        return 5;
+      } else {
+        if (maxDiff > 100) return 1.5;
+        if (maxDiff > 50) return 2;
+        if (maxDiff > 20) return 3;
+        return 4;
+      }
+    }
+
+    function showCities(cities) {
+      // Clear previous data
+      map.dataProvider.images = [];
+
+      // Add new cities
+      map.dataProvider.images = cities.map(makeCityImage);
+
+      // Update the map
+      map.validateNow();
+
+      // Calculate new center and zoom level
+      var minLat = Math.min.apply(null, cities.map(c => c.latitude));
+      var maxLat = Math.max.apply(null, cities.map(c => c.latitude));
+      var minLon = Math.min.apply(null, cities.map(c => c.longitude));
+      var maxLon = Math.max.apply(null, cities.map(c => c.longitude));
+
+      var centerLat = (minLat + maxLat) / 2;
+      var centerLon = (minLon + maxLon) / 2;
+      var zoomLevel = calculateZoomLevel(cities);
+
+      // For domestic view, add a bit more padding
+      if (currentView === 'domestic') {
+        var latPadding = (maxLat - minLat) * 0.2;
+        var lonPadding = (maxLon - minLon) * 0.2;
+        minLat -= latPadding;
+        maxLat += latPadding;
+        minLon -= lonPadding;
+        maxLon += lonPadding;
+        centerLat = (minLat + maxLat) / 2;
+        centerLon = (minLon + maxLon) / 2;
+      }
+
+      // Zoom to the new location
+      map.zoomToLongLat(zoomLevel, [centerLon, centerLat], true, 800);
+    }
+
+    // Initialize the map
+    function initMap() {
+      map = AmCharts.makeChart("mapdiv", {
+        type: "map",
+        theme: "light",
+        projection: "mercator",
+        dataProvider: {
+          map: "worldLow",
+          getAreasFromMap: true,
+          images: []
+        },
+        areasSettings: {
+          unlistedAreasColor: "#f9f9f9",
+          color: "#f9f9f9",
+          outlineColor: "#c8c8c8",
+          outlineThickness: 0.9,
+          rollOverOutlineColor: "#006838",
+          rollOverColor: "#f0fff0"
+        },
+        imagesSettings: {
+          rollOverScale: 1.2,
+          rollOverColor: "#004d27",
+          selectedScale: 1.2,
+          selectedColor: "#004d27",
+          balloonText: "<b>[[title]]</b>",
+          adjustAnimationSpeed: 5
+        },
+        zoomControl: {
+          zoomControlEnabled: true,
+          minZoomLevel: 1,
+          maxZoomLevel: 5,
+          zoomFactor: 1.5,
+          homeButtonEnabled: false
+        },
+        mouseWheelZoomEnabled: true,
+        dragMap: true
+      });
+
+      // Set up button event listeners
+      document.getElementById("btnDomestic").addEventListener("click", function () {
+        if (currentView === 'domestic') return;
+
+        currentView = 'domestic';
+        this.classList.add("active");
+        document.getElementById("btnInternational").classList.remove("active");
+        showCities(domesticCities);
+      });
+
+      document.getElementById("btnInternational").addEventListener("click", function () {
+        if (currentView === 'international') return;
+
+        currentView = 'international';
+        this.classList.add("active");
+        document.getElementById("btnDomestic").classList.remove("active");
+        showCities(internationalCities);
+      });
+
+      // Show international by default
+      showCities(internationalCities);
+    }
+
+    // Wait for the page to load before initializing the map
+    window.addEventListener('load', initMap);
+  </script>
+
+</body>
+
+</html>

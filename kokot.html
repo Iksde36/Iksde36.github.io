@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>PIA Routes Map</title>
+
+<!-- UIkit CSS -->
+<link href="https://cdn.jsdelivr.net/npm/uikit@3.16.22/dist/css/uikit.min.css" rel="stylesheet" />
+
+<!-- AmCharts -->
+<script src="https://cdn.amcharts.com/lib/3/ammap.js"></script>
+<script src="https://cdn.amcharts.com/lib/3/maps/js/worldLow.js"></script>
+<script src="https://cdn.amcharts.com/lib/3/themes/light.js"></script>
+
+<style>
+  body {
+    margin: 0;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #fff;
+  }
+
+  #map-container {
+    height: 650px;
+    position: relative;
+  }
+
+  #mapdiv {
+    width: 100%;
+    height: 100%;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+  }
+
+  #toggleButtons {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+    padding: 10px 14px;
+    font-weight: 600;
+    font-size: 16px;
+    display: flex;
+    gap: 12px;
+    user-select: none;
+  }
+
+  #toggleButtons button {
+    background: transparent;
+    border: none;
+    color: #006838;
+    cursor: pointer;
+    padding: 8px 16px;
+    border-bottom: 3px solid transparent;
+    transition: all 0.25s ease;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  }
+
+  #toggleButtons button.active,
+  #toggleButtons button:hover {
+    border-color: #006838;
+    color: #004d27;
+    font-weight: 700;
+  }
+
+  /* Map area styling */
+  .ammap-area {
+    fill: #f9f9f9 !important;
+    stroke: #c8c8c8 !important;
+    stroke-width: 0.8 !important;
+  }
+
+  /* Route lines */
+  .routeLine {
+    stroke: #006838;
+    stroke-width: 2;
+    opacity: 0.75;
+  }
+
+  /* City labels */
+  .city-label {
+    fill: #006838;
+    font-weight: 600;
+    font-size: 13px;
+    pointer-events: none;
+    user-select: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="uk-container uk-padding-small" id="map-container">
+  <div id="mapdiv"></div>
+
+  <div id="toggleButtons">
+    <button id="btnDomestic">Domestic</button>
+    <button id="btnInternational" class="active">International</button>
+  </div>
+</div>
+
+<!-- UIkit JS -->
+<script src="https://cdn.jsdelivr.net/npm/uikit@3.16.22/dist/js/uikit.min.js"></script>
+
+<script>
+  var domesticCities = [
+    { title: "Islamabad", latitude: 33.738045, longitude: 73.084488 },
+    { title: "Karachi", latitude: 24.8607, longitude: 67.0011 },
+    { title: "Lahore", latitude: 31.5497, longitude: 74.3436 },
+    { title: "Peshawar", latitude: 34.0151, longitude: 71.5249 },
+    { title: "Quetta", latitude: 30.1798, longitude: 66.9750 },
+    { title: "Multan", latitude: 30.1575, longitude: 71.5249 },
+    { title: "Faisalabad", latitude: 31.4181, longitude: 73.0770 },
+    { title: "Sialkot", latitude: 32.4945, longitude: 74.5229 },
+    { title: "Gilgit", latitude: 35.9208, longitude: 74.3083 },
+    { title: "Skardu", latitude: 35.3306, longitude: 75.6346 },
+    { title: "Gwadar", latitude: 25.1260, longitude: 62.3229 },
+    { title: "Turbat", latitude: 26.0048, longitude: 63.0500 },
+    { title: "Zhob", latitude: 31.3406, longitude: 69.4486 },
+    { title: "Jacobabad", latitude: 28.2812, longitude: 68.4372 },
+    { title: "Rahim Yar Khan", latitude: 28.4200, longitude: 70.2983 },
+    { title: "Nawabshah", latitude: 26.2433, longitude: 68.4108 }
+  ];
+
+  var internationalCities = [
+    { title: "Dubai", latitude: 25.2048, longitude: 55.2708 },
+    { title: "Sharjah", latitude: 25.3463, longitude: 55.4209 },
+    { title: "Muscat", latitude: 23.5880, longitude: 58.3829 },
+    { title: "Jeddah", latitude: 21.4858, longitude: 39.1925 },
+    { title: "Riyadh", latitude: 24.7136, longitude: 46.6753 },
+    { title: "Dammam", latitude: 26.4207, longitude: 50.0888 },
+    { title: "Medina", latitude: 24.5247, longitude: 39.5692 },
+    { title: "Kabul", latitude: 34.5553, longitude: 69.2075 },
+    { title: "Doha", latitude: 25.2854, longitude: 51.5310 },
+    { title: "Istanbul", latitude: 41.0082, longitude: 28.9784 },
+    { title: "London", latitude: 51.5074, longitude: -0.1278 },
+    { title: "Manchester", latitude: 53.4808, longitude: -2.2426 },
+    { title: "Toronto", latitude: 43.65107, longitude: -79.347015 },
+    { title: "Montreal", latitude: 45.5017, longitude: -73.5673 },
+    { title: "Chicago", latitude: 41.8781, longitude: -87.6298 },
+    { title: "New York", latitude: 40.7128, longitude: -74.0060 },
+    { title: "Tokyo", latitude: 35.6762, longitude: 139.6503 }
+  ];
+
+  var map;
+
+  function makeCityImage(city) {
+    return {
+      title: city.title,
+      latitude: city.latitude,
+      longitude: city.longitude,
+      svgPath: "M12.3,0c-1.1,0-2.1,0.6-2.6,1.5l-7,14c-0.3,0.7-0.1,1.5,0.5,2s1.3,0.6,2,0.3l6.8-3.1l3.1,6.8c0.3,0.7,1,1.1,1.8,1.1c0.1,0,0.2,0,0.3,0c1.1-0.1,1.9-1.1,1.8-2.2l-7-14C13.9,0.5,13.1,0,12.3,0z",
+      color: "#006838",
+      scale: 0.5,
+      label: city.title,
+      labelColor: "#006838",
+      labelFontSize: 13,
+      labelBold: true,
+      labelRollOverColor: "#004d27",
+      labelOutlineColor: "#fff",
+      labelOutlineThickness: 2,
+      labelShiftY: 2
+    };
+  }
+
+  function makeRouteLine(city1, city2) {
+    return {
+      arc: -0.85,
+      alpha: 0.7,
+      color: "#006838",
+      latitudes: [city1.latitude, city2.latitude],
+      longitudes: [city1.longitude, city2.longitude],
+      class: "routeLine"
+    };
+  }
+
+  function clearRoutes() {
+    if (map.dataProvider.lines) {
+      map.dataProvider.lines = [];
+    }
+  }
+
+  function addRoutes(cities) {
+    var lines = [];
+    
+    // Connect each city to Karachi (as the hub)
+    var karachi = cities.find(c => c.title === "Karachi");
+    if (!karachi) karachi = cities[0]; // fallback to first city
+    
+    for (var i = 0; i < cities.length; i++) {
+      if (cities[i].title !== karachi.title) {
+        lines.push(makeRouteLine(karachi, cities[i]));
+      }
+    }
+
+    map.dataProvider.lines = lines;
+  }
+
+  function showCitiesAndRoutes(cities) {
+    // Clear previous data
+    map.dataProvider.images = [];
+    clearRoutes();
+    
+    // Add new cities and routes
+    map.dataProvider.images = cities.map(makeCityImage);
+    addRoutes(cities);
+    
+    // Update the map
+    map.validateNow();
+    
+    // Zoom to fit all markers
+    map.zoomToLatLong(
+      cities.map(c => c.latitude),
+      cities.map(c => c.longitude),
+      true,
+      true
+    );
+  }
+
+  // Initialize the map
+  function initMap() {
+    map = AmCharts.makeChart("mapdiv", {
+      type: "map",
+      theme: "light",
+      projection: "mercator",
+      dataProvider: {
+        map: "worldLow",
+        getAreasFromMap: true,
+        images: [],
+        lines: []
+      },
+      areasSettings: {
+        unlistedAreasColor: "#f9f9f9",
+        color: "#f9f9f9",
+        outlineColor: "#c8c8c8",
+        outlineThickness: 0.9,
+        rollOverOutlineColor: "#006838",
+        rollOverColor: "#f0fff0"
+      },
+      imagesSettings: {
+        rollOverScale: 1.2,
+        rollOverColor: "#004d27",
+        selectedScale: 1.2,
+        selectedColor: "#004d27",
+        balloonText: "<b>[[title]]</b>",
+        adjustAnimationSpeed: 5
+      },
+      linesSettings: {
+        color: "#006838",
+        alpha: 0.7,
+        thickness: 2,
+        balloonText: ""
+      },
+      zoomControl: {
+        zoomControlEnabled: true,
+        minZoomLevel: 1,
+        maxZoomLevel: 5,
+        zoomFactor: 1.5,
+        homeButtonEnabled: false
+      },
+      mouseWheelZoomEnabled: true,
+      dragMap: true
+    });
+
+    // Set up button event listeners
+    document.getElementById("btnDomestic").addEventListener("click", function() {
+      this.classList.add("active");
+      document.getElementById("btnInternational").classList.remove("active");
+      showCitiesAndRoutes(domesticCities);
+    });
+
+    document.getElementById("btnInternational").addEventListener("click", function() {
+      this.classList.add("active");
+      document.getElementById("btnDomestic").classList.remove("active");
+      showCitiesAndRoutes(internationalCities);
+    });
+
+    // Show international by default
+    showCitiesAndRoutes(internationalCities);
+  }
+
+  // Wait for the page to load before initializing the map
+  window.addEventListener('load', initMap);
+</script>
+
+</body>
+</html>
