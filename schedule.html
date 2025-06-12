@@ -144,7 +144,8 @@
     <script>
         const map = L.map('map', {
             zoomControl: false
-        }).setView([20, 0], 3);
+        }).setView([20, 0], 2);
+
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
@@ -185,10 +186,23 @@
                 const response = await fetch(url);
                 const data = await response.json();
 
+                if (!data.states) {
+                    console.log('No states data returned');
+                    return;
+                }
+
                 markers.forEach(m => map.removeLayer(m));
                 markers.length = 0;
 
-                const piaFlights = (data.states || []).filter(f => f[1] && f[1].trim().startsWith("RYR"));
+                // Filter only flights with callsign starting with PIA and valid lat/lon
+                const piaFlights = data.states.filter(f =>
+                    f[1] && f[1].trim().startsWith("PIA") &&
+                    typeof f[5] === 'number' && !isNaN(f[5]) &&
+                    typeof f[6] === 'number' && !isNaN(f[6])
+                );
+
+                console.log('Total flights:', data.states.length);
+                console.log('PIA flights found:', piaFlights.length);
 
                 piaFlights.forEach(flight => {
                     const callsign = flight[1].trim();
@@ -197,23 +211,21 @@
                     const alt = flight[7];
                     const spd = flight[9];
 
-                    if (typeof lat === 'number' && typeof lon === 'number') {
-                        const icon = L.divIcon({
-                            html: `<span class="material-symbols-outlined flight-icon">flight</span>`,
-                            className: '',
-                            iconSize: [36, 36],
-                            iconAnchor: [18, 18],
-                            popupAnchor: [0, -18],
-                        });
+                    const icon = L.divIcon({
+                        html: `<span class="material-symbols-outlined flight-icon">flight</span>`,
+                        className: '',
+                        iconSize: [36, 36],
+                        iconAnchor: [18, 18],
+                        popupAnchor: [0, -18],
+                    });
 
-                        const marker = L.marker([lat, lon], { icon: icon }).addTo(map);
-                        marker.bindPopup(`
-          <strong>${callsign}</strong><br>
-          Altitude: ${alt ? Math.round(alt) + ' m' : 'N/A'}<br>
-          Speed: ${spd ? Math.round(spd) + ' m/s' : 'N/A'}
-        `);
-                        markers.push(marker);
-                    }
+                    const marker = L.marker([lat, lon], { icon: icon }).addTo(map);
+                    marker.bindPopup(`
+                <strong>${callsign}</strong><br>
+                Altitude: ${alt ? Math.round(alt) + ' m' : 'N/A'}<br>
+                Speed: ${spd ? Math.round(spd) + ' m/s' : 'N/A'}
+            `);
+                    markers.push(marker);
                 });
             } catch (e) {
                 console.error('Error loading flights:', e);
