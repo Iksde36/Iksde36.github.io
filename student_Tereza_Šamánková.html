@@ -1,0 +1,1426 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3B4 – Rozvrh</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+    --grid-border:#cfcfd6;
+    --head-bg:#eef1f7;
+    --day-bg:#f6f7fb;
+    --card-radius:8px;
+    --cell-pad:4px;
+    --hover-scale:1.03;
+    --lesson-font:1.3rem;
+    --corner-font:0.8rem;
+    --primary-color: #2a62ff;
+    --secondary-color: #11457E;
+    --text-color: #2e2e2e;
+    --light-text: #666;
+    --background-color: #f2f3f7;
+    --card-background: #fff;
+    --settings-bg: #fff;
+    --settings-border: #ddd;
+    --settings-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    --success-color: #27ae60;
+    --warning-color: #f39c12;
+    --danger-color: #e74c3c;
+}
+
+/* Dark mode variables */
+.dark-mode {
+    --grid-border: #444;
+    --head-bg: #2a2a2a;
+    --day-bg: #333;
+    --primary-color: #4a86ff;
+    --secondary-color: #6ba3ff;
+    --text-color: #f0f0f0;
+    --light-text: #aaa;
+    --background-color: #1a1a1a;
+    --card-background: #2a2a2a;
+    --settings-bg: #333;
+    --settings-border: #555;
+    --settings-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+*{box-sizing:border-box;}
+html,body{
+    margin:0;
+    padding:0;
+    height:100%;
+    width:100%;
+    font-family:'Poppins',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    background:var(--background-color);
+    color: var(--text-color);
+    overflow: hidden;
+}
+.wrapper{
+    padding:10px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+.header{
+    text-align:center;
+    margin-bottom:10px;
+    flex-shrink: 0;
+}
+.header .school{
+    font-size:0.9rem;
+    color:var(--light-text);
+    margin:0 0 2px;
+}
+.header .klass{
+    font-size:1.5rem;
+    font-weight:800;
+    color:var(--text-color);
+    margin:0 0 5px;
+}
+.table-container{
+    flex: 1;
+    overflow: auto;
+    border-radius:12px;
+    border:1px solid var(--grid-border);
+    background:var(--card-background);
+}
+table{
+    width:100%;
+    table-layout:fixed;
+    border-collapse:collapse;
+    height:100%;
+}
+th,td{
+    border:1px solid var(--grid-border);
+    padding:0;
+    text-align:center;
+    vertical-align:top;
+}
+thead th{
+    background:var(--head-bg);
+    font-weight:700;
+    font-size:0.8rem;
+    padding:6px 2px;
+    height: 35px;
+}
+thead th.time{
+    text-align:center;
+}
+tbody td.day{
+    background:var(--day-bg);
+    font-weight:700;
+    text-align:center;
+    vertical-align:middle;
+    font-size:0.85rem;
+    width:70px;
+    padding: 4px;
+}
+tbody td.slot{
+    padding:var(--cell-pad);
+    position:relative;
+    aspect-ratio: 1/1;
+}
+.cell-stack{
+    position:relative;
+    height:100%;
+    width:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:stretch;
+    gap:2px;
+}
+.lesson{
+    flex: 1 1 auto;
+    position:relative;
+    width:100%;
+    border-radius:var(--card-radius);
+    color:#fff;
+    overflow:hidden;
+    cursor:pointer;
+    transform-origin:center;
+    transition:transform 0.15s ease, box-shadow 0.15s ease;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+.lesson:hover {
+    transform: scale(var(--hover-scale));
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+.lesson .content{
+    position:absolute;
+    inset:2px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    padding:2px;
+    text-align:center;
+    overflow:hidden;
+}
+.subject-short{
+    font-weight:800;
+    font-size:var(--lesson-font);
+    line-height:1.1;
+    word-break:break-word;
+    white-space:normal;
+    margin: 0 2px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.corner-left,.corner-right{
+    position:absolute;
+    bottom:1px;
+    font-size:var(--corner-font);
+    line-height:1;
+    opacity:.95;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    max-width:40%;
+    padding: 0 2px;
+}
+.corner-left{
+    left:2px;
+    text-align:left;
+}
+.corner-right{
+    right:2px;
+    text-align:right;
+}
+.lesson.compact .corner-left,
+.lesson.compact .corner-right {
+    display: none;
+}
+/* Seminar specific styling */
+.seminar-cell {
+    border-right: none !important;
+}
+.seminar-cell + td {
+    border-left: none !important;
+}
+#popup-bg{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.35);
+    backdrop-filter:blur(2px);
+    z-index:999;
+}
+#popup{
+    color:var(--text-color);
+    display:none;
+    position:fixed;
+    width:auto;
+    min-width:300px;
+    max-width:90vw;
+    background:var(--card-background);
+    border-radius:14px;
+    padding:18px 16px 16px;
+    box-shadow:0 20px 50px rgba(0,0,0,.35);
+    z-index:1000;
+    cursor:move;
+    user-select:none;
+}
+#popup h3{
+    margin:0 28px 6px 0;
+    font-size:1.6rem;
+    font-weight:800;
+    color:var(--primary-color);
+    text-align:center;
+}
+#popup .meta{
+    color:var(--text-color);
+    margin:8px 0;
+    font-size:1rem;
+    text-align:left;
+    font-weight: 500;
+}
+#popup .meta-label {
+    font-weight:600;
+    color:var(--secondary-color);
+    margin-right: 6px;
+}
+#student-list{
+    max-height:220px;
+    overflow-y:auto;
+    margin-top:12px;
+    border-radius:8px;
+    box-shadow:inset 0 0 4px rgba(0,0,0,0.1);
+    padding: 8px;
+    background: var(--day-bg);
+}
+#student-list .student-row{
+    padding:6px 8px;
+    border-radius:4px;
+    font-weight:500;
+    font-size: 0.95rem;
+    margin-bottom: 4px;
+    background: var(--card-background);
+    transition: background 0.2s;
+}
+#student-list .student-row:hover {
+    background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+}
+#student-list .student-class{
+    font-weight:400;
+    font-size:0.8rem;
+    color:var(--light-text);
+    margin-left:4px;
+}
+#popup .bold{
+    font-weight:600;
+}
+#popup .close-btn{
+    position:absolute;
+    right:10px;
+    top:10px;
+    width:28px;
+    height:28px;
+    border-radius:50%;
+    background:#e43737;
+    color:#fff;
+    border:none;
+    font-weight:800;
+    cursor:pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    z-index: 1001;
+}
+#popup .close-btn:hover {
+    background: #c12b2b;
+}
+#seminar-popup {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--card-background);
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 20px 50px rgba(0,0,0,.35);
+    z-index: 1001;
+    max-width: 90vw;
+    max-height: 80vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    cursor: move;
+    user-select: none;
+}
+#seminar-popup h3 {
+    color: var(--primary-color);
+    margin-top: 0;
+    text-align: center;
+    margin-bottom: 15px;
+    padding-right: 30px;
+}
+#seminar-lessons {
+    overflow-y: auto;
+    padding-right: 5px;
+}
+#seminar-lessons::-webkit-scrollbar {
+    width: 6px;
+}
+#seminar-lessons::-webkit-scrollbar-track {
+    background: var(--day-bg);
+    border-radius: 3px;
+}
+#seminar-lessons::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 3px;
+}
+.seminar-lesson {
+    padding: 12px;
+    margin: 8px 0;
+    background: var(--day-bg);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.seminar-lesson:hover {
+    background: var(--head-bg);
+}
+.search-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 100;
+    transition: all 0.2s;
+}
+.search-btn:hover {
+    background: var(--secondary-color);
+    transform: scale(1.05);
+}
+.settings-btn {
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 100;
+    transition: all 0.2s;
+}
+.settings-btn:hover {
+    background: var(--secondary-color);
+    transform: scale(1.05);
+}
+.search-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+.search-modal-content {
+    background: var(--card-background);
+    padding: 20px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+.search-input-container {
+    position: sticky;
+    top: 0;
+    background: var(--card-background);
+    padding-bottom: 16px;
+    z-index: 10;
+}
+.search-input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid var(--grid-border);
+    border-radius: 8px;
+    font-size: 16px;
+    outline: none;
+    background: var(--day-bg);
+    color: var(--text-color);
+    transition: border 0.2s;
+}
+.search-input:focus {
+    border-color: var(--primary-color);
+}
+
+.search-results-container {
+    overflow-y: auto;
+    max-height: 300px;
+    border-radius: 8px;
+}
+.search-results-container::-webkit-scrollbar {
+    width: 6px;
+}
+.search-results-container::-webkit-scrollbar-track {
+    background: var(--day-bg);
+    border-radius: 3px;
+}
+.search-results-container::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 3px;
+}
+.search-result {
+    padding: 12px;
+    background: var(--day-bg);
+    border-bottom: 1px solid var(--grid-border);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.search-result:hover {
+    background: var(--head-bg);
+}
+.search-result:last-child {
+    border-bottom: none;
+}
+.search-result-type {
+    font-weight: 600;
+    color: var(--primary-color);
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+}
+.search-result-name {
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+.no-results {
+    text-align: center;
+    padding: 20px;
+    color: var(--light-text);
+}
+.settings-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+.settings-content {
+    background: var(--settings-bg);
+    padding: 25px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--settings-shadow);
+    border: 1px solid var(--settings-border);
+    cursor: default;
+    position: relative;
+}
+.settings-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--grid-border);
+    position: relative;
+}
+.settings-header h2 {
+    margin: 0;
+    color: var(--primary-color);
+    text-align: center;
+    flex: 1;
+}
+.settings-group {
+    margin-bottom: 20px;
+}
+.settings-group h3 {
+    margin-top: 0;
+    color: var(--primary-color);
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+}
+.setting-item {
+    margin-bottom: 15px;
+}
+.setting-item label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text-color);
+}
+.setting-item input, .setting-item select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 2px solid var(--grid-border);
+    border-radius: 8px;
+    background: var(--day-bg);
+    color: var(--text-color);
+    font-family: inherit;
+    font-size: 14px;
+    transition: border 0.2s;
+}
+.setting-item input:focus, .setting-item select:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+.setting-item input[type="range"] {
+    padding: 0;
+    height: 6px;
+    border: none;
+    background: var(--grid-border);
+    border-radius: 3px;
+}
+.setting-item input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    cursor: pointer;
+}
+.setting-item input[type="checkbox"] {
+    width: auto;
+    margin-right: 10px;
+    transform: scale(1.2);
+}
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+.color-preview {
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    display: inline-block;
+    margin-left: 10px;
+    vertical-align: middle;
+    border: 2px solid var(--grid-border);
+}
+.settings-footer {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid var(--grid-border);
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+    flex: 1;
+}
+.btn-primary {
+    background: var(--primary-color);
+    color: white;
+}
+.btn-primary:hover {
+    background: var(--secondary-color);
+}
+.btn-secondary {
+    background: var(--day-bg);
+    color: var(--text-color);
+    border: 1px solid var(--grid-border);
+}
+.btn-secondary:hover {
+    background: var(--head-bg);
+}
+.settings-scrollable {
+    overflow-y: auto;
+    max-height: 50vh;
+    padding-right: 5px;
+}
+.settings-scrollable::-webkit-scrollbar {
+    width: 6px;
+}
+.settings-scrollable::-webkit-scrollbar-track {
+    background: var(--day-bg);
+    border-radius: 3px;
+}
+.settings-scrollable::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 3px;
+}
+.settings-close-btn {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #e43737;
+    color: #fff;
+    border: none;
+    font-weight: 800;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    z-index: 1001;
+}
+.settings-close-btn:hover {
+    background: #c12b2b;
+}
+.seminar-close-btn {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #e43737;
+    color: #fff;
+    border: none;
+    font-weight: 800;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    z-index: 1001;
+}
+.seminar-close-btn:hover {
+    background: #c12b2b;
+}
+.color-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 10px;
+}
+.color-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.color-item label {
+    margin-bottom: 0;
+    flex: 1;
+}
+.dark-mode-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    background: var(--day-bg);
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+.dark-mode-label {
+    font-weight: 600;
+    color: var(--text-color);
+}
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+}
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 24px;
+}
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+input:checked + .slider {
+    background-color: var(--primary-color);
+}
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+@media (max-width: 768px) {
+    .wrapper {
+        padding: 5px;
+    }
+    .header .klass {
+        font-size: 1.2rem;
+    }
+    thead th {
+        font-size: 0.7rem;
+        padding: 4px 1px;
+    }
+    tbody td.day {
+        font-size: 0.75rem;
+        padding: 2px;
+        width: 50px;
+    }
+    .subject-short {
+        font-size: 1rem;
+    }
+    .corner-left, .corner-right {
+        font-size: 0.6rem;
+        max-width: 35%;
+    }
+    .search-modal-content {
+        width: 95%;
+        margin: 10px;
+        padding: 15px;
+    }
+    #popup, #seminar-popup {
+        min-width: 280px;
+        max-width: 85vw;
+        padding: 14px 12px 12px;
+    }
+    #popup h3 {
+        font-size: 1.4rem;
+    }
+    #popup .meta {
+        font-size: 0.9rem;
+    }
+    #student-list .student-row {
+        font-size: 0.9rem;
+    }
+    .settings-content {
+        padding: 20px;
+    }
+    .color-grid {
+        grid-template-columns: 1fr;
+    }
+}
+@media (max-width: 480px) {
+    .header .klass {
+        font-size: 1.1rem;
+    }
+    thead th {
+        font-size: 0.6rem;
+        padding: 2px 1px;
+    }
+    tbody td.day {
+        font-size: 0.7rem;
+        width: 40px;
+    }
+    .subject-short {
+        font-size: 0.9rem;
+    }
+    #popup, #seminar-popup {
+        min-width: 250px;
+        padding: 12px 10px 10px;
+    }
+    #popup h3 {
+        font-size: 1.2rem;
+    }
+    #student-list .student-row {
+        font-size: 0.85rem;
+        padding: 3px 6px;
+    }
+    .settings-content {
+        padding: 15px;
+    }
+    .settings-footer {
+        flex-direction: column;
+    }
+}
+@media (min-width: 1920px) {
+    #popup h3 {
+        font-size: 1.8rem;
+    }
+    #popup .meta {
+        font-size: 1.05rem;
+    }
+    #student-list .student-row {
+        font-size: 1rem;
+    }
+}
+</style>
+</head>
+<body>
+<div class="wrapper">
+<div class="header">
+<p class="school">Rozvrh tříd</p>
+<h1 class="klass">3B4</h1>
+</div>
+<div class="table-container">
+<table>
+<thead><tr><th></th><th class="time">7:05 - 7:50</th><th class="time">8:00 - 8:45</th><th class="time">8:55 - 9:40</th><th class="time">10:00 - 10:45</th><th class="time">10:55 - 11:40</th><th class="time">11:50 - 12:35</th><th class="time">12:20 - 13:05</th><th class="time">13:15 - 14:00</th><th class="time">14:10 - 14:55</th><th class="time">15:05 - 15:50</th></tr></thead><tbody>
+<tr><td class="day">Pondělí</td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#99FF66" data-subject="Tělesná výchova" data-teachers="Lenka Bartoňková" data-class="TvM" data-section="červená" data-students="&lt;div class=&quot;student-row&quot;&gt;Alžběta Bodová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Charlotte Bratrů &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Eliška Budíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Coufalová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Valérie Ďulíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Gabriela Hanousková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Petra Kojecká &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Michaela Křivánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Theodora Lacová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Natálie Morávková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Helena Navrátilová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Pouchlá &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Lucie Řehořková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Marie Vičarová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">Tv</div><div class="corner-left">BRT</div><div class="corner-right">TvM</div></div></div></div></td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#66CCFF" data-subject="Fyzika" data-teachers="Jan Bernard" data-class="354" data-section="červená" data-students="&lt;div class=&quot;student-row&quot;&gt;Michal Beran &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Alžběta Bodová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Charlotte Bratrů &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Eliška Budíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Coufalová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sebastian Drábek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Valérie Ďulíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Štěpán Hájek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Gabriela Hanousková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Filip Kašpar &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Petra Kojecká &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Michaela Křivánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Theodora Lacová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Albert Lindner &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sára Mannová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Dean Michajlov &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Samuel Monteux &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Natálie Morávková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Helena Navrátilová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Pouchlá &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Lucie Řehořková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;David Saitl &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Schalková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Swierková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jakub Šimek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Zdeněk Šoula &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Ladislav Tomáš &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Anna Ubrová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Marie Vičarová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Karolína Zdubová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jan Zlatníček &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">FYZ</div><div class="corner-left">BRN</div><div class="corner-right">354</div></div></div></div></td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#FF00CC" data-subject="Společenské vědy" data-teachers="Noemi Matoušková" data-class="316" data-section="zelená" data-students="&lt;div class=&quot;student-row&quot;&gt;Michal Beran &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Alžběta Bodová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Charlotte Bratrů &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Eliška Budíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Coufalová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sebastian Drábek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Valérie Ďulíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Štěpán Hájek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Gabriela Hanousková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Filip Kašpar &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Petra Kojecká &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Michaela Křivánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Theodora Lacová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Albert Lindner &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sára Mannová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Dean Michajlov &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Samuel Monteux &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Natálie Morávková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Helena Navrátilová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Pouchlá &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Lucie Řehořková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;David Saitl &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Schalková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Swierková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jakub Šimek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Zdeněk Šoula &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Ladislav Tomáš &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Anna Ubrová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Marie Vičarová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Karolína Zdubová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jan Zlatníček &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">SV</div><div class="corner-left">MTŠ</div><div class="corner-right">316</div></div></div></div></td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#33CCFF" data-subject="Matematika" data-teachers="Monika Hodinková" data-class="165" data-section="červená" data-students="&lt;div class=&quot;student-row&quot;&gt;Michal Beran &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Alžběta Bodová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Charlotte Bratrů &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Eliška Budíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Coufalová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sebastian Drábek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Valérie Ďulíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Štěpán Hájek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Gabriela Hanousková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Filip Kašpar &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Petra Kojecká &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Michaela Křivánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Theodora Lacová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Albert Lindner &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sára Mannová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Dean Michajlov &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Samuel Monteux &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Natálie Morávková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Helena Navrátilová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Pouchlá &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Lucie Řehořková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;David Saitl &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Schalková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Swierková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jakub Šimek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Zdeněk Šoula &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Ladislav Tomáš &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Anna Ubrová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Marie Vičarová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Karolína Zdubová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jan Zlatníček &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">MAT</div><div class="corner-left">HOD</div><div class="corner-right">165</div></div></div></div></td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#FF3399" data-subject="Anglický jazyk" data-teachers="Reino Toop" data-class="214" data-section="zelená" data-students="&lt;div class=&quot;student-row&quot;&gt;Dean Michajlov &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Samuel Monteux &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Natálie Morávková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Helena Navrátilová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Pouchlá &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Lucie Řehořková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;David Saitl &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Schalková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jakub Šimek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Ladislav Tomáš &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Anna Ubrová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Marie Vičarová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Karolína Zdubová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jan Zlatníček &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">ANJ</div><div class="corner-left">TOP</div><div class="corner-right">214</div></div></div></div></td><td class="slot "><div class="cell-stack"></div></td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#993366" data-subject="Český jazyk a literatura" data-teachers="Magda Špetíková" data-class="316" data-section="zelená" data-students="&lt;div class=&quot;student-row&quot;&gt;Michal Beran &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Alžběta Bodová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Charlotte Bratrů &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Eliška Budíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Coufalová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sebastian Drábek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Valérie Ďulíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Štěpán Hájek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Gabriela Hanousková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Filip Kašpar &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Petra Kojecká &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Michaela Křivánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Theodora Lacová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Albert Lindner &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sára Mannová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Dean Michajlov &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Samuel Monteux &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Natálie Morávková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Helena Navrátilová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Pouchlá &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Lucie Řehořková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;David Saitl &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Schalková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Swierková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jakub Šimek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Zdeněk Šoula &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Ladislav Tomáš &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Anna Ubrová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Marie Vičarová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Karolína Zdubová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jan Zlatníček &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">ČJL</div><div class="corner-left">ŠPE</div><div class="corner-right">316</div></div></div></div></td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#33CCFF" data-subject="Cambridge exam" data-teachers="Jana Tudíková" data-class="214" data-section="zelená" data-students="&lt;div class=&quot;student-row&quot;&gt;Eliška Budíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Charlotte Bratrů &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Valérie Ďulíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Michaela Křivánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Natálie Morávková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;David Saitl &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jan Zlatníček &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">CAM</div><div class="corner-left">TUD</div><div class="corner-right">214</div></div></div></div></td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#33CCFF" data-subject="Cambridge exam" data-teachers="Jana Tudíková" data-class="214" data-section="zelená" data-students="&lt;div class=&quot;student-row&quot;&gt;Eliška Budíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Charlotte Bratrů &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Valérie Ďulíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Michaela Křivánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Natálie Morávková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;David Saitl &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jan Zlatníček &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">CAM</div><div class="corner-left">TUD</div><div class="corner-right">214</div></div></div></div></td><td class="slot "><div class="cell-stack"></div></td></tr>
+<tr><td class="day">Úterý</td><td class="slot "><div class="cell-stack"></div></td><td class="slot "><div class="cell-stack"></div></td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#000080" data-subject="Biologie" data-teachers="Eva Žáková" data-class="316" data-section="zelená" data-students="&lt;div class=&quot;student-row&quot;&gt;Michal Beran &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Alžběta Bodová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Charlotte Bratrů &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Eliška Budíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Coufalová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sebastian Drábek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Valérie Ďulíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Štěpán Hájek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Gabriela Hanousková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Filip Kašpar &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Petra Kojecká &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Michaela Křivánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Theodora Lacová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Albert Lindner &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sára Mannová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Dean Michajlov &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Samuel Monteux &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Natálie Morávková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Helena Navrátilová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Pouchlá &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Lucie Řehořková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;David Saitl &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Schalková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Swierková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jakub Šimek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Zdeněk Šoula &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Ladislav Tomáš &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Anna Ubrová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Marie Vičarová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Karolína Zdubová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jan Zlatníček &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">BIO</div><div class="corner-left">ŽÁK</div><div class="corner-right">316</div></div></div></div></td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#99CCFF" data-subject="Španělský jazyk" data-teachers="Petra Vyskupová" data-class="204" data-section="zelená" data-students="&lt;div class=&quot;student-row&quot;&gt;Alžběta Bodová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Charlotte Bratrů &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Coufalová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sebastian Drábek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Štěpán Hájek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Gabriela Hanousková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Michaela Křivánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Albert Lindner &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sára Mannová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Samuel Monteux &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Helena Navrátilová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Pouchlá &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Lucie Řehořková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Schalková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Anna Ubrová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Marie Vičarová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jan Zlatníček &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">ŠPJ</div><div class="corner-left">VYS</div><div class="corner-right">204</div></div></div></div></td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#993366" data-subject="Český jazyk a literatura" data-teachers="Magda Špetíková" data-class="316" data-section="zelená" data-students="&lt;div class=&quot;student-row&quot;&gt;Michal Beran &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Alžběta Bodová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Charlotte Bratrů &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Eliška Budíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Coufalová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sebastian Drábek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Valérie Ďulíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Štěpán Hájek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Gabriela Hanousková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Filip Kašpar &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Petra Kojecká &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Michaela Křivánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Theodora Lacová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Albert Lindner &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sára Mannová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Dean Michajlov &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Samuel Monteux &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Natálie Morávková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Helena Navrátilová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Pouchlá &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Lucie Řehořková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;David Saitl &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Schalková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Swierková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jakub Šimek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Zdeněk Šoula &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Ladislav Tomáš &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Anna Ubrová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Marie Vičarová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Karolína Zdubová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jan Zlatníček &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">ČJL</div><div class="corner-left">ŠPE</div><div class="corner-right">316</div></div></div></div></td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#33CCFF" data-subject="Matematika" data-teachers="Monika Hodinková" data-class="352" data-section="červená" data-students="&lt;div class=&quot;student-row&quot;&gt;Michal Beran &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Alžběta Bodová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Charlotte Bratrů &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Eliška Budíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Coufalová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sebastian Drábek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Valérie Ďulíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Štěpán Hájek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Gabriela Hanousková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Filip Kašpar &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Petra Kojecká &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Michaela Křivánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Theodora Lacová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Albert Lindner &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sára Mannová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Dean Michajlov &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Samuel Monteux &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Natálie Morávková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Helena Navrátilová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Pouchlá &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Lucie Řehořková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;David Saitl &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Schalková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Swierková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jakub Šimek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Zdeněk Šoula &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Ladislav Tomáš &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Anna Ubrová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Marie Vičarová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Karolína Zdubová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jan Zlatníček &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">MAT</div><div class="corner-left">HOD</div><div class="corner-right">352</div></div></div></div></td><td class="slot "><div class="cell-stack"></div></td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#FF3399" data-subject="Anglický jazyk" data-teachers="Reino Toop" data-class="123" data-section="žlutá" data-students="&lt;div class=&quot;student-row&quot;&gt;Dean Michajlov &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Samuel Monteux &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Natálie Morávková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Helena Navrátilová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Pouchlá &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Lucie Řehořková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;David Saitl &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Schalková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jakub Šimek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Ladislav Tomáš &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Anna Ubrová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Marie Vičarová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Karolína Zdubová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jan Zlatníček &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">ANJ</div><div class="corner-left">TOP</div><div class="corner-right">123</div></div></div></div></td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#0066FF" data-subject="Chemie" data-teachers="Jana Pučová" data-class="326" data-section="žlutá" data-students="&lt;div class=&quot;student-row&quot;&gt;Michal Beran &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Alžběta Bodová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Charlotte Bratrů &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Eliška Budíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Coufalová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sebastian Drábek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Valérie Ďulíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Štěpán Hájek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Gabriela Hanousková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Filip Kašpar &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Petra Kojecká &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Michaela Křivánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Theodora Lacová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Albert Lindner &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sára Mannová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Dean Michajlov &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Samuel Monteux &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Natálie Morávková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Helena Navrátilová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Pouchlá &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Lucie Řehořková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;David Saitl &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Schalková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Swierková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jakub Šimek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Zdeněk Šoula &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Ladislav Tomáš &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Anna Ubrová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Marie Vičarová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Karolína Zdubová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jan Zlatníček &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">CHE</div><div class="corner-left">PUČ</div><div class="corner-right">326</div></div></div></div></td><td class="slot "><div class="cell-stack"></div></td></tr>
+<tr><td class="day">Středa</td><td class="slot "><div class="cell-stack"></div></td><td class="slot "><div class="cell-stack"></div></td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#99CCFF" data-subject="Dějepis" data-teachers="Klára Imramovská Šolcová" data-class="316" data-section="zelená" data-students="&lt;div class=&quot;student-row&quot;&gt;Michal Beran &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Alžběta Bodová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Charlotte Bratrů &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Eliška Budíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Coufalová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sebastian Drábek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Valérie Ďulíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Štěpán Hájek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Gabriela Hanousková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Filip Kašpar &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Petra Kojecká &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Michaela Křivánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Theodora Lacová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Albert Lindner &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sára Mannová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Dean Michajlov &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Samuel Monteux &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Natálie Morávková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Helena Navrátilová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Pouchlá &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Lucie Řehořková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;David Saitl &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Schalková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Swierková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jakub Šimek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Zdeněk Šoula &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Ladislav Tomáš &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Anna Ubrová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Marie Vičarová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Karolína Zdubová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jan Zlatníček &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">DĚJ</div><div class="corner-left">ŠLC</div><div class="corner-right">316</div></div></div></div></td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#008080" data-subject="Zeměpis" data-teachers="Karolína Derahová" data-class="205" data-section="zelená" data-students="&lt;div class=&quot;student-row&quot;&gt;Michal Beran &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Alžběta Bodová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Charlotte Bratrů &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Eliška Budíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Coufalová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sebastian Drábek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Valérie Ďulíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Štěpán Hájek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Gabriela Hanousková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Filip Kašpar &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Petra Kojecká &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Michaela Křivánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Theodora Lacová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Albert Lindner &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sára Mannová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Dean Michajlov &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Samuel Monteux &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Natálie Morávková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Helena Navrátilová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Pouchlá &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Lucie Řehořková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;David Saitl &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Schalková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Swierková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jakub Šimek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Zdeněk Šoula &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Ladislav Tomáš &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Anna Ubrová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Marie Vičarová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Karolína Zdubová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jan Zlatníček &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">ZEM</div><div class="corner-left">DER</div><div class="corner-right">205</div></div></div></div></td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#FF3399" data-subject="Anglický jazyk" data-teachers="Reino Toop" data-class="152" data-section="červená" data-students="&lt;div class=&quot;student-row&quot;&gt;Dean Michajlov &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Samuel Monteux &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Natálie Morávková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Helena Navrátilová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Pouchlá &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Lucie Řehořková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;David Saitl &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Schalková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jakub Šimek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Ladislav Tomáš &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Anna Ubrová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Marie Vičarová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Karolína Zdubová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jan Zlatníček &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">ANJ</div><div class="corner-left">TOP</div><div class="corner-right">152</div></div></div></div></td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#66CCFF" data-subject="Fyzika" data-teachers="Jan Bernard" data-class="322" data-section="žlutá" data-students="&lt;div class=&quot;student-row&quot;&gt;Michal Beran &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Alžběta Bodová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Charlotte Bratrů &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Eliška Budíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Coufalová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sebastian Drábek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Valérie Ďulíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Štěpán Hájek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Gabriela Hanousková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Filip Kašpar &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Petra Kojecká &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Michaela Křivánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Theodora Lacová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Albert Lindner &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sára Mannová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Dean Michajlov &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Samuel Monteux &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Natálie Morávková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Helena Navrátilová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Pouchlá &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Lucie Řehořková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;David Saitl &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Schalková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Swierková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jakub Šimek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Zdeněk Šoula &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Ladislav Tomáš &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Anna Ubrová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Marie Vičarová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Karolína Zdubová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jan Zlatníček &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">FYZ</div><div class="corner-left">BRN</div><div class="corner-right">322</div></div></div></div></td><td class="slot "><div class="cell-stack"></div></td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#993366" data-subject="Český jazyk a literatura" data-teachers="Magda Špetíková" data-class="316" data-section="zelená" data-students="&lt;div class=&quot;student-row&quot;&gt;Michal Beran &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Alžběta Bodová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Charlotte Bratrů &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Eliška Budíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Coufalová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sebastian Drábek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Valérie Ďulíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Štěpán Hájek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Gabriela Hanousková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Filip Kašpar &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Petra Kojecká &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Michaela Křivánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Theodora Lacová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Albert Lindner &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sára Mannová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Dean Michajlov &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Samuel Monteux &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Natálie Morávková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Helena Navrátilová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Pouchlá &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Lucie Řehořková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;David Saitl &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Schalková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Swierková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jakub Šimek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Zdeněk Šoula &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Ladislav Tomáš &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Anna Ubrová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Marie Vičarová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Karolína Zdubová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jan Zlatníček &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">ČJL</div><div class="corner-left">ŠPE</div><div class="corner-right">316</div></div></div></div></td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#99CCFF" data-subject="Španělský jazyk" data-teachers="Petra Vyskupová" data-class="263" data-section="červená" data-students="&lt;div class=&quot;student-row&quot;&gt;Alžběta Bodová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Charlotte Bratrů &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Coufalová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sebastian Drábek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Štěpán Hájek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Gabriela Hanousková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Michaela Křivánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Albert Lindner &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sára Mannová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Samuel Monteux &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Helena Navrátilová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Pouchlá &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Lucie Řehořková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Schalková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Anna Ubrová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Marie Vičarová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jan Zlatníček &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">ŠPJ</div><div class="corner-left">VYS</div><div class="corner-right">263</div></div></div></div></td><td class="slot "><div class="cell-stack"></div></td></tr>
+<tr><td class="day">Čtvrtek</td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#33CCFF" data-subject="Matematika" data-teachers="Monika Hodinková" data-class="354" data-section="červená" data-students="&lt;div class=&quot;student-row&quot;&gt;Dean Michajlov &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Samuel Monteux &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Natálie Morávková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Helena Navrátilová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Pouchlá &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Lucie Řehořková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;David Saitl &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Schalková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jakub Šimek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Ladislav Tomáš &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Anna Ubrová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Marie Vičarová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Karolína Zdubová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jan Zlatníček &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">MAT</div><div class="corner-left">HOD</div><div class="corner-right">354</div></div></div></div></td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#FF3399" data-subject="Anglický jazyk" data-teachers="James John Warnes" data-class="224a" data-section="žlutá" data-students="&lt;div class=&quot;student-row&quot;&gt;Dean Michajlov &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Samuel Monteux &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Natálie Morávková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Helena Navrátilová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Pouchlá &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Lucie Řehořková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;David Saitl &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Schalková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jakub Šimek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Ladislav Tomáš &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Anna Ubrová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Marie Vičarová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Karolína Zdubová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jan Zlatníček &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">ANJ</div><div class="corner-left">WAR</div><div class="corner-right">224a</div></div></div></div></td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#99FF66" data-subject="Tělesná výchova" data-teachers="Lenka Bartoňková" data-class="TvM" data-section="červená" data-students="&lt;div class=&quot;student-row&quot;&gt;Alžběta Bodová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Charlotte Bratrů &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Eliška Budíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Coufalová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Valérie Ďulíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Gabriela Hanousková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Petra Kojecká &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Michaela Křivánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Theodora Lacová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Natálie Morávková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Helena Navrátilová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Pouchlá &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Lucie Řehořková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Marie Vičarová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">Tv</div><div class="corner-left">BRT</div><div class="corner-right">TvM</div></div></div></div></td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#0066FF" data-subject="Chemie" data-teachers="Jana Pučová" data-class="326" data-section="žlutá" data-students="&lt;div class=&quot;student-row&quot;&gt;Michal Beran &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Alžběta Bodová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Charlotte Bratrů &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Eliška Budíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Coufalová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sebastian Drábek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Valérie Ďulíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Štěpán Hájek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Gabriela Hanousková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Filip Kašpar &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Petra Kojecká &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Michaela Křivánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Theodora Lacová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Albert Lindner &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sára Mannová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Dean Michajlov &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Samuel Monteux &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Natálie Morávková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Helena Navrátilová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Pouchlá &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Lucie Řehořková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;David Saitl &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Schalková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Swierková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jakub Šimek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Zdeněk Šoula &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Ladislav Tomáš &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Anna Ubrová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Marie Vičarová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Karolína Zdubová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jan Zlatníček &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">CHE</div><div class="corner-left">PUČ</div><div class="corner-right">326</div></div></div></div></td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#33CCFF" data-subject="Matematika" data-teachers="Monika Hodinková" data-class="165" data-section="červená" data-students="&lt;div class=&quot;student-row&quot;&gt;Michal Beran &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Alžběta Bodová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Charlotte Bratrů &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Eliška Budíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Coufalová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sebastian Drábek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Valérie Ďulíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Štěpán Hájek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Gabriela Hanousková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Filip Kašpar &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Petra Kojecká &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Michaela Křivánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Theodora Lacová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Albert Lindner &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sára Mannová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Dean Michajlov &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Samuel Monteux &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Natálie Morávková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Helena Navrátilová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Pouchlá &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Lucie Řehořková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;David Saitl &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Schalková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Swierková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jakub Šimek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Zdeněk Šoula &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Ladislav Tomáš &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Anna Ubrová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Marie Vičarová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Karolína Zdubová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jan Zlatníček &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">MAT</div><div class="corner-left">HOD</div><div class="corner-right">165</div></div></div></div></td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#000080" data-subject="Biologie" data-teachers="Eva Žáková" data-class="152" data-section="červená" data-students="&lt;div class=&quot;student-row&quot;&gt;Michal Beran &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Alžběta Bodová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Charlotte Bratrů &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Eliška Budíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Coufalová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sebastian Drábek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Valérie Ďulíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Štěpán Hájek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Gabriela Hanousková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Filip Kašpar &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Petra Kojecká &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Michaela Křivánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Theodora Lacová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Albert Lindner &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sára Mannová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Dean Michajlov &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Samuel Monteux &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Natálie Morávková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Helena Navrátilová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Pouchlá &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Lucie Řehořková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;David Saitl &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Schalková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Swierková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jakub Šimek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Zdeněk Šoula &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Ladislav Tomáš &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Anna Ubrová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Marie Vičarová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Karolína Zdubová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jan Zlatníček &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">BIO</div><div class="corner-left">ŽÁK</div><div class="corner-right">152</div></div></div></div></td><td class="slot "><div class="cell-stack"></div></td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#FF00CC" data-subject="Společenské vědy" data-teachers="Noemi Matoušková" data-class="316" data-section="zelená" data-students="&lt;div class=&quot;student-row&quot;&gt;Michal Beran &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Alžběta Bodová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Charlotte Bratrů &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Eliška Budíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Coufalová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sebastian Drábek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Valérie Ďulíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Štěpán Hájek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Gabriela Hanousková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Filip Kašpar &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Petra Kojecká &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Michaela Křivánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Theodora Lacová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Albert Lindner &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sára Mannová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Dean Michajlov &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Samuel Monteux &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Natálie Morávková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Helena Navrátilová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Pouchlá &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Lucie Řehořková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;David Saitl &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Schalková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Swierková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jakub Šimek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Zdeněk Šoula &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Ladislav Tomáš &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Anna Ubrová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Marie Vičarová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Karolína Zdubová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jan Zlatníček &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">SV</div><div class="corner-left">MTŠ</div><div class="corner-right">316</div></div></div></div></td><td class="slot "><div class="cell-stack"></div></td><td class="slot "><div class="cell-stack"></div></td></tr>
+<tr><td class="day">Pátek</td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#CCFF66" data-subject="Vybrané kapitoly z psychologie a sociologie" data-teachers="Eva Valkounová" data-class="105" data-section="zelená" data-students="&lt;div class=&quot;student-row&quot;&gt;David Saitl &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Schalková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">PSY</div><div class="corner-left">VLK</div><div class="corner-right">105</div></div></div></div></td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#CCFF66" data-subject="Vybrané kapitoly z psychologie a sociologie" data-teachers="Eva Valkounová" data-class="105" data-section="zelená" data-students="&lt;div class=&quot;student-row&quot;&gt;David Saitl &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Schalková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">PSY</div><div class="corner-left">VLK</div><div class="corner-right">105</div></div></div></div></td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#FF3399" data-subject="Anglický jazyk" data-teachers="Reino Toop" data-class="214" data-section="zelená" data-students="&lt;div class=&quot;student-row&quot;&gt;Dean Michajlov &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Samuel Monteux &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Natálie Morávková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Helena Navrátilová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Pouchlá &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Lucie Řehořková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;David Saitl &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Schalková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jakub Šimek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Ladislav Tomáš &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Anna Ubrová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Marie Vičarová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Karolína Zdubová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jan Zlatníček &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">ANJ</div><div class="corner-left">TOP</div><div class="corner-right">214</div></div></div></div></td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#99CCFF" data-subject="Španělský jazyk" data-teachers="Petra Vyskupová" data-class="305" data-section="zelená" data-students="&lt;div class=&quot;student-row&quot;&gt;Alžběta Bodová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Charlotte Bratrů &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Coufalová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sebastian Drábek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Štěpán Hájek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Gabriela Hanousková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Michaela Křivánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Albert Lindner &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sára Mannová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Samuel Monteux &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Helena Navrátilová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Pouchlá &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Lucie Řehořková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Schalková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Anna Ubrová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Marie Vičarová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jan Zlatníček &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">ŠPJ</div><div class="corner-left">VYS</div><div class="corner-right">305</div></div></div></div></td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#993366" data-subject="Český jazyk a literatura" data-teachers="Magda Špetíková" data-class="304" data-section="zelená" data-students="&lt;div class=&quot;student-row&quot;&gt;Michal Beran &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Alžběta Bodová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Charlotte Bratrů &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Eliška Budíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Coufalová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sebastian Drábek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Valérie Ďulíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Štěpán Hájek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Gabriela Hanousková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Filip Kašpar &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Petra Kojecká &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Michaela Křivánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Theodora Lacová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Albert Lindner &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sára Mannová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Dean Michajlov &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Samuel Monteux &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Natálie Morávková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Helena Navrátilová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Pouchlá &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Lucie Řehořková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;David Saitl &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Schalková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Swierková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jakub Šimek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Zdeněk Šoula &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Ladislav Tomáš &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Anna Ubrová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Marie Vičarová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Karolína Zdubová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jan Zlatníček &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">ČJL</div><div class="corner-left">ŠPE</div><div class="corner-right">304</div></div></div></div></td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#66CCFF" data-subject="Fyzika" data-teachers="Jan Bernard" data-class="263" data-section="červená" data-students="&lt;div class=&quot;student-row&quot;&gt;Michal Beran &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Alžběta Bodová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Charlotte Bratrů &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Eliška Budíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Coufalová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sebastian Drábek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Valérie Ďulíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Štěpán Hájek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Gabriela Hanousková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Filip Kašpar &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Petra Kojecká &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Michaela Křivánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Theodora Lacová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Albert Lindner &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sára Mannová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Dean Michajlov &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Samuel Monteux &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Natálie Morávková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Helena Navrátilová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Pouchlá &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Lucie Řehořková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;David Saitl &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Schalková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Swierková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jakub Šimek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Zdeněk Šoula &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Ladislav Tomáš &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Anna Ubrová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Marie Vičarová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Karolína Zdubová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jan Zlatníček &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">FYZ</div><div class="corner-left">BRN</div><div class="corner-right">263</div></div></div></div></td><td class="slot "><div class="cell-stack"></div></td><td class="slot "><div class="cell-stack"><div class="lesson " style="background:#008080" data-subject="Zeměpis" data-teachers="Karolína Derahová" data-class="305" data-section="zelená" data-students="&lt;div class=&quot;student-row&quot;&gt;Michal Beran &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Alžběta Bodová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Charlotte Bratrů &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Eliška Budíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Coufalová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sebastian Drábek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Valérie Ďulíková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Štěpán Hájek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Gabriela Hanousková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Filip Kašpar &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Petra Kojecká &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Michaela Křivánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Theodora Lacová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Albert Lindner &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Sára Mannová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Dean Michajlov &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Samuel Monteux &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Natálie Morávková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Helena Navrátilová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Pouchlá &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Lucie Řehořková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;David Saitl &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Barbora Schalková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Klára Swierková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Tereza Šamánková &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jakub Šimek &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Zdeněk Šoula &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Ladislav Tomáš &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Anna Ubrová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Marie Vičarová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Karolína Zdubová &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;student-row&quot;&gt;Jan Zlatníček &lt;span class=&quot;student-class&quot;&gt;(3B4)&lt;/span&gt;&lt;/div&gt;" onclick="openPopupFrom(this)"><div class="content"><div class="subject-short">ZEM</div><div class="corner-left">DER</div><div class="corner-right">305</div></div></div></div></td><td class="slot "><div class="cell-stack"></div></td><td class="slot "><div class="cell-stack"></div></td></tr>
+
+</tbody></table></div></div>
+<button class="search-btn" onclick="openSearch()">🔍</button>
+<button class="settings-btn" onclick="openSettings()">⚙️</button>
+<div id="popup-bg"></div>
+<div id="popup">
+<button class="close-btn" onclick="closePopup()">×</button>
+<h3 id="p-subj" class="bold"></h3>
+<p class="meta" id="p-teach"></p>
+<p class="meta" id="p-class"></p>
+<p class="meta" id="p-section"></p>
+<div id="student-list"></div>
+</div>
+<div id="seminar-popup">
+<button class="seminar-close-btn" onclick="closeSeminarPopup()">×</button>
+<h3>Seminář - Vyberte předmět</h3>
+<div id="seminar-lessons"></div>
+</div>
+<div id="search-modal" class="search-modal">
+<div class="search-modal-content">
+<div class="search-input-container">
+<input type="text" id="search-input" class="search-input" placeholder="Hledat studenta, třídu nebo učitele..." autocomplete="off">
+</div>
+<div class="search-results-container">
+<div id="search-results"></div>
+</div>
+</div>
+</div>
+<div id="settings-modal" class="settings-modal">
+<div class="settings-content">
+<button class="settings-close-btn" onclick="closeSettings()">×</button>
+<div class="settings-header">
+<h2>Nastavení vzhledu</h2>
+</div>
+<div class="settings-scrollable">
+<div class="dark-mode-toggle">
+<span class="dark-mode-label">Tmavý režim</span>
+<label class="switch">
+<input type="checkbox" id="dark-mode-toggle" onchange="toggleDarkMode()">
+<span class="slider"></span>
+</label>
+</div>
+<div class="settings-group">
+<h3>Styl písma</h3>
+<div class="setting-item">
+<label for="font-family">Rodina písma</label>
+<select id="font-family" onchange="updateFontFamily()">
+<option value="'Poppins', sans-serif">Poppins</option>
+<option value="Arial, sans-serif">Arial</option>
+<option value="'Times New Roman', serif">Times New Roman</option>
+<option value="Georgia, serif">Georgia</option>
+<option value="'Courier New', monospace">Courier New</option>
+</select>
+</div>
+<div class="setting-item">
+<label for="font-size">Velikost písma: <span id="font-size-value">16px</span></label>
+<input type="range" id="font-size" min="12" max="24" value="16" oninput="updateFontSize()">
+</div>
+</div>
+<div class="settings-group">
+<h3>Barvy</h3>
+<div class="color-grid">
+<div class="color-item">
+<label for="primary-color">Primární</label>
+<input type="color" id="primary-color" value="#2a62ff" onchange="updatePrimaryColor()">
+</div>
+<div class="color-item">
+<label for="secondary-color">Sekundární</label>
+<input type="color" id="secondary-color" value="#11457e" onchange="updateSecondaryColor()">
+</div>
+<div class="color-item">
+<label for="text-color">Text</label>
+<input type="color" id="text-color" value="#2e2e2e" onchange="updateTextColor()">
+</div>
+<div class="color-item">
+<label for="background-color">Pozadí</label>
+<input type="color" id="background-color" value="#f2f3f7" onchange="updateBackgroundColor()">
+</div>
+</div>
+</div>
+</div>
+<div class="settings-footer">
+<button class="btn btn-secondary" onclick="resetSettings()">Obnovit výchozí</button>
+<button class="btn btn-primary" onclick="closeSettings()">Uložit</button>
+</div>
+</div>
+</div>
+<script>
+// Prevent flash of unstyled content
+document.documentElement.style.visibility = 'hidden';
+window.addEventListener('DOMContentLoaded', () => {
+    loadSettings();
+    document.documentElement.style.visibility = 'visible';
+    
+    // ADD THIS LINE TO ENSURE SEMINAR POPUP IS HIDDEN ON LOAD
+    closeSeminarPopup();
+});
+
+const popup = document.getElementById('popup');
+const popupBg = document.getElementById('popup-bg');
+const seminarPopup = document.getElementById('seminar-popup');
+const ps = {
+    subj: document.getElementById('p-subj'), 
+    teach: document.getElementById('p-teach'), 
+    cls: document.getElementById('p-class'), 
+    section: document.getElementById('p-section'), 
+    students: document.getElementById('student-list')
+};
+let dragging = false, offX = 0, offY = 0;
+let currentSeminarLessons = null;
+let seminarPopupActive = false;
+let activePopup = null;
+let openWindowCount = 0;
+const MAX_WINDOWS = 3;
+
+// Timetable data for search
+const timetables = [
+    {type:"class", name:"3B4", file:"class_3B4.html"},
+    {type:"student", name:"Michal Beran", file:"student_Michal_Beran.html"},
+    {type:"student", name:"Alžběta Bodová", file:"student_Alžběta_Bodová.html"},
+    {type:"student", name:"Charlotte Bratrů", file:"student_Charlotte_Bratrů.html"},
+    {type:"student", name:"Eliška Budíková", file:"student_Eliška_Budíková.html"},
+    {type:"student", name:"Barbora Coufalová", file:"student_Barbora_Coufalová.html"},
+    {type:"student", name:"Sebastian Drábek", file:"student_Sebastian_Drábek.html"},
+    {type:"student", name:"Valérie Ďulíková", file:"student_Valérie_Ďulíková.html"},
+    {type:"student", name:"Štěpán Hájek", file:"student_Štěpán_Hájek.html"},
+    {type:"student", name:"Gabriela Hanousková", file:"student_Gabriela_Hanousková.html"},
+    {type:"student", name:"Filip Kašpar", file:"student_Filip_Kašpar.html"},
+    {type:"student", name:"Petra Kojecká", file:"student_Petra_Kojecká.html"},
+    {type:"student", name:"Michaela Křivánková", file:"student_Michaela_Křivánková.html"},
+    {type:"student", name:"Theodora Lacová", file:"student_Theodora_Lacová.html"},
+    {type:"student", name:"Albert Lindner", file:"student_Albert_Lindner.html"},
+    {type:"student", name:"Sára Mannová", file:"student_Sára_Mannová.html"},
+    {type:"student", name:"Dean Michajlov", file:"student_Dean_Michajlov.html"},
+    {type:"student", name:"Samuel Monteux", file:"student_Samuel_Monteux.html"},
+    {type:"student", name:"Natálie Morávková", file:"student_Natálie_Morávková.html"},
+    {type:"student", name:"Helena Navrátilová", file:"student_Helena_Navrátilová.html"},
+    {type:"student", name:"Klára Pouchlá", file:"student_Klára_Pouchlá.html"},
+    {type:"student", name:"Lucie Řehořková", file:"student_Lucie_Řehořková.html"},
+    {type:"student", name:"David Saitl", file:"student_David_Saitl.html"},
+    {type:"student", name:"Barbora Schalková", file:"student_Barbora_Schalková.html"},
+    {type:"student", name:"Klára Swierková", file:"student_Klára_Swierková.html"},
+    {type:"student", name:"Tereza Šamánková", file:"student_Tereza_Šamánková.html"},
+    {type:"student", name:"Jakub Šimek", file:"student_Jakub_Šimek.html"},
+    {type:"student", name:"Zdeněk Šoula", file:"student_Zdeněk_Šoula.html"},
+    {type:"student", name:"Ladislav Tomáš", file:"student_Ladislav_Tomáš.html"},
+    {type:"student", name:"Anna Ubrová", file:"student_Anna_Ubrová.html"},
+    {type:"student", name:"Marie Vičarová", file:"student_Marie_Vičarová.html"},
+    {type:"student", name:"Karolína Zdubová", file:"student_Karolína_Zdubová.html"},
+    {type:"student", name:"Jan Zlatníček", file:"student_Jan_Zlatníček.html"},
+    {type:"teacher", name:"Lenka Bartoňková", file:"teacher_Lenka_Bartoňková.html"},
+    {type:"teacher", name:"Jan Bernard", file:"teacher_Jan_Bernard.html"},
+    {type:"teacher", name:"Karolína Derahová", file:"teacher_Karolína_Derahová.html"},
+    {type:"teacher", name:"Monika Hanáčková", file:"teacher_Monika_Hanáčková.html"},
+    {type:"teacher", name:"Jana Henzlová", file:"teacher_Jana_Henzlová.html"},
+    {type:"teacher", name:"Monika Hodinková", file:"teacher_Monika_Hodinková.html"},
+    {type:"teacher", name:"Benjamín Juráň", file:"teacher_Benjamín_Juráň.html"},
+    {type:"teacher", name:"Martina Lipková", file:"teacher_Martina_Lipková.html"},
+    {type:"teacher", name:"Noemi Matoušková", file:"teacher_Noemi_Matoušková.html"},
+    {type:"teacher", name:"Tomáš Mráček", file:"teacher_Tomáš_Mráček.html"},
+    {type:"teacher", name:"Eva Navrátilová Vystavělová", file:"teacher_Eva_Navrátilová_Vystavělová.html"},
+    {type:"teacher", name:"Lenka Pavlíčková", file:"teacher_Lenka_Pavlíčková.html"},
+    {type:"teacher", name:"Jan Popelka", file:"teacher_Jan_Popelka.html"},
+    {type:"teacher", name:"Jana Pučová", file:"teacher_Jana_Pučová.html"},
+    {type:"teacher", name:"Marcos Sapró Babiloni", file:"teacher_Marcos_Sapró_Babiloni.html"},
+    {type:"teacher", name:"Dagmar Šašinková", file:"teacher_Dagmar_Šašinková.html"},
+    {type:"teacher", name:"Petra Šerek Kopečná", file:"teacher_Petra_Šerek_Kopečná.html"},
+    {type:"teacher", name:"Klára Imramovská Šolcová", file:"teacher_Klára_Imramovská_Šolcová.html"},
+    {type:"teacher", name:"Magda Špetíková", file:"teacher_Magda_Špetíková.html"},
+    {type:"teacher", name:"Alžběta Toop", file:"teacher_Alžběta_Toop.html"},
+    {type:"teacher", name:"Reino Toop", file:"teacher_Reino_Toop.html"},
+    {type:"teacher", name:"Jana Tudíková", file:"teacher_Jana_Tudíková.html"},
+    {type:"teacher", name:"Eva Valkounová", file:"teacher_Eva_Valkounová.html"},
+    {type:"teacher", name:"Simona Veselá", file:"teacher_Simona_Veselá.html"},
+    {type:"teacher", name:"Petra Vyskupová", file:"teacher_Petra_Vyskupová.html"},
+    {type:"teacher", name:"James John Warnes", file:"teacher_James_John_Warnes.html"},
+    {type:"teacher", name:"Eva Žáková", file:"teacher_Eva_Žáková.html"}
+];
+
+// Load saved settings
+function loadSettings() {
+    const darkMode = localStorage.getItem('darkMode') === 'true';
+    const fontFamily = localStorage.getItem('fontFamily') || "'Poppins', sans-serif";
+    const fontSize = localStorage.getItem('fontSize') || '16';
+    const primaryColor = localStorage.getItem('primaryColor') || '#2a62ff';
+    const secondaryColor = localStorage.getItem('secondaryColor') || '#11457e';
+    const textColor = localStorage.getItem('textColor') || '#2e2e2e';
+    const backgroundColor = localStorage.getItem('backgroundColor') || '#f2f3f7';
+    
+    // Apply settings
+    if (darkMode) document.body.classList.add('dark-mode');
+    document.getElementById('dark-mode-toggle').checked = darkMode;
+    document.body.style.fontFamily = fontFamily;
+    document.getElementById('font-family').value = fontFamily;
+    document.body.style.fontSize = fontSize + 'px';
+    document.getElementById('font-size').value = fontSize;
+    document.getElementById('font-size-value').textContent = fontSize + 'px';
+    document.documentElement.style.setProperty('--primary-color', primaryColor);
+    document.getElementById('primary-color').value = primaryColor;
+    document.documentElement.style.setProperty('--secondary-color', secondaryColor);
+    document.getElementById('secondary-color').value = secondaryColor;
+    document.documentElement.style.setProperty('--text-color', textColor);
+    document.getElementById('text-color').value = textColor;
+    document.documentElement.style.setProperty('--background-color', backgroundColor);
+    document.getElementById('background-color').value = backgroundColor;
+}
+
+// Save settings
+function saveSettings() {
+    localStorage.setItem('darkMode', document.getElementById('dark-mode-toggle').checked);
+    localStorage.setItem('fontFamily', document.getElementById('font-family').value);
+    localStorage.setItem('fontSize', document.getElementById('font-size').value);
+    localStorage.setItem('primaryColor', document.getElementById('primary-color').value);
+    localStorage.setItem('secondaryColor', document.getElementById('secondary-color').value);
+    localStorage.setItem('textColor', document.getElementById('text-color').value);
+    localStorage.setItem('backgroundColor', document.getElementById('background-color').value);
+}
+
+// Reset to default settings
+function resetSettings() {
+    localStorage.clear();
+    loadSettings();
+}
+
+// Settings functions
+function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+    saveSettings();
+}
+
+function updateFontFamily() {
+    document.body.style.fontFamily = document.getElementById('font-family').value;
+    saveSettings();
+}
+
+function updateFontSize() {
+    const size = document.getElementById('font-size').value;
+    document.body.style.fontSize = size + 'px';
+    document.getElementById('font-size-value').textContent = size + 'px';
+    saveSettings();
+}
+
+function updatePrimaryColor() {
+    const color = document.getElementById('primary-color').value;
+    document.documentElement.style.setProperty('--primary-color', color);
+    saveSettings();
+}
+
+function updateSecondaryColor() {
+    const color = document.getElementById('secondary-color').value;
+    document.documentElement.style.setProperty('--secondary-color', color);
+    saveSettings();
+}
+
+function updateTextColor() {
+    const color = document.getElementById('text-color').value;
+    document.documentElement.style.setProperty('--text-color', color);
+    saveSettings();
+}
+
+function updateBackgroundColor() {
+    const color = document.getElementById('background-color').value;
+    document.documentElement.style.setProperty('--background-color', color);
+    saveSettings();
+}
+
+window.addEventListener('load', function() {
+    // Auto-adjust lesson cards
+    document.querySelectorAll('.lesson').forEach(lesson => {
+        const subject = lesson.querySelector('.subject-short');
+        const left = lesson.querySelector('.corner-left');
+        const right = lesson.querySelector('.corner-right');
+        
+        if (subject && left && right) {
+            const subjectRect = subject.getBoundingClientRect();
+            const leftRect = left.getBoundingClientRect();
+            const rightRect = right.getBoundingClientRect();
+            
+            // Check for overlap and hide corners if needed
+            if (subjectRect.right > leftRect.left + 10 || subjectRect.left < rightRect.right - 10) {
+                lesson.classList.add('compact');
+            }
+        }
+    });
+});
+
+function centerPopup(){
+    popup.style.display = 'block'; 
+    popupBg.style.display = 'block'; 
+    const x = (window.innerWidth - popup.offsetWidth) / 2; 
+    const y = (window.innerHeight - popup.offsetHeight) / 2; 
+    popup.style.left = Math.max(10, x) + 'px'; 
+    popup.style.top = Math.max(10, y) + 'px';
+}
+
+function openPopupFrom(el){
+    // Check if this is a seminar
+    if (el.dataset.isSeminar === 'true') {
+        openSeminarPopup(el);
+        return;
+    }
+    
+    ps.subj.textContent = el.dataset.subject || ''; 
+    ps.teach.innerHTML = el.dataset.teachers ? '<span class="meta-label">Učitelé:</span> ' + el.dataset.teachers : ''; 
+    ps.cls.innerHTML = el.dataset.class ? '<span class="meta-label">Třída:</span> ' + el.dataset.class : ''; 
+    
+    // Show section instead of floor
+    const section = el.dataset.section || '';
+    let sectionHtml = '';
+    if (section) {
+        let sectionColor = 'var(--success-color)'; // green
+        if (section === 'žlutá') sectionColor = 'var(--warning-color)';
+        if (section === 'červená') sectionColor = 'var(--danger-color)';
+        sectionHtml = `<span class="meta-label">Sekce:</span> <span style="color:${sectionColor}; font-weight:600">${section}</span>`;
+    }
+    ps.section.innerHTML = sectionHtml;
+    
+    ps.students.innerHTML = el.dataset.students || ''; 
+    centerPopup();
+}
+
+function openSeminarPopup(el) {
+    try {
+        currentSeminarLessons = JSON.parse(el.dataset.seminarLessons);
+        const seminarLessonsContainer = document.getElementById('seminar-lessons');
+        seminarLessonsContainer.innerHTML = '';
+        
+        currentSeminarLessons.forEach(lesson => {
+            const lessonEl = document.createElement('div');
+            lessonEl.className = 'seminar-lesson';
+            lessonEl.innerHTML = `
+                <strong>${lesson.subject_long}</strong> (${lesson.subject_short})<br>
+                <small>Učitelé: ${lesson.teachers_long.join(', ')}</small><br>
+                <small>Třída: ${lesson.rooms_join}</small>
+            `;
+            lessonEl.onclick = () => {
+                // Show the individual lesson details
+                ps.subj.textContent = lesson.subject_long || ''; 
+                ps.teach.innerHTML = lesson.teachers_long ? '<span class="meta-label">Učitelé:</span> ' + lesson.teachers_long.join(', ') : ''; 
+                ps.cls.innerHTML = lesson.rooms_join ? '<span class="meta-label">Třída:</span> ' + lesson.rooms_join : ''; 
+                
+                // Show section
+                const section = lesson.section || '';
+                let sectionHtml = '';
+                if (section) {
+                    let sectionColor = 'var(--success-color)'; // green
+                    if (section === 'žlutá') sectionColor = 'var(--warning-color)';
+                    if (section === 'červená') sectionColor = 'var(--danger-color)';
+                    sectionHtml = `<span class="meta-label">Sekce:</span> <span style="color:${sectionColor}; font-weight:600">${section}</span>`;
+                }
+                ps.section.innerHTML = sectionHtml;
+                
+                ps.students.innerHTML = lesson.students_html || ''; 
+                
+                // Freeze seminar popup position by making it not draggable
+                closeSeminarPopup();
+                
+                centerPopup();
+            };
+            seminarLessonsContainer.appendChild(lessonEl);
+        });
+        
+        seminarPopup.style.display = 'flex';
+        seminarPopupActive = true;
+        popupBg.style.display = 'block';
+        
+        // FIXED: Center the seminar popup with proper bounds checking
+        const buffer = 20;
+        const x = Math.max(buffer, (window.innerWidth - seminarPopup.offsetWidth) / 2);
+        const y = Math.max(buffer, (window.innerHeight - seminarPopup.offsetHeight) / 2);
+        seminarPopup.style.left = Math.min(x, window.innerWidth - seminarPopup.offsetWidth - buffer) + 'px';
+        seminarPopup.style.top = Math.min(y, window.innerHeight - seminarPopup.offsetHeight - buffer) + 'px';
+        
+        // Reset transform to ensure proper positioning
+        seminarPopup.style.transform = 'none';
+    } catch (e) {
+        console.error('Error parsing seminar data:', e);
+    }
+}
+
+function closeSeminarPopup() {
+    seminarPopup.style.display = 'none';
+    seminarPopupActive = false;  // This should stay
+    popupBg.style.display = 'none';  // This should stay
+    currentSeminarLessons = null;  // This should stay
+}
+                
+popupBg.addEventListener('click', function() {
+    // If subject popup is open, close just that
+    if (popup.style.display === 'block') {
+        closePopup();
+    } 
+    // If seminar popup is open, close that
+    else if (seminarPopup.style.display === 'flex') {
+        closeSeminarPopup();
+    }
+});
+function closePopup(){
+    popup.style.display = 'none'; 
+    
+    // Only hide the background if seminar popup is not active
+    if (!seminarPopupActive) {
+        popupBg.style.display = 'none';
+    }
+    
+    // Keep seminar popup open when closing subject info
+    // (removed the code that was reopening seminar popup unnecessarily)
+}
+                
+function openSearch() {
+    const modal = document.getElementById('search-modal');
+    modal.style.display = 'flex';
+    const searchInput = document.getElementById('search-input');
+    searchInput.focus();
+    searchInput.select();
+    updateSearchResults('');
+}
+
+function closeSearch() {
+    document.getElementById('search-modal').style.display = 'none';
+}
+
+function openSettings() {
+    document.getElementById('settings-modal').style.display = 'flex';
+}
+
+function closeSettings() {
+    document.getElementById('settings-modal').style.display = 'none';
+    saveSettings();
+}
+
+function updateSearchResults(query) {
+    const resultsDiv = document.getElementById('search-results');
+    resultsDiv.innerHTML = '';
+    
+    if (!timetables.length) {
+        resultsDiv.innerHTML = '<div class="no-results">Žádná data k vyhledávání</div>';
+        return;
+    }
+    
+    let filtered = timetables.filter(item => 
+        item.name.toLowerCase().includes(query.toLowerCase()) ||
+        item.type.toLowerCase().includes(query.toLowerCase())
+    );
+    
+    if (filtered.length === 0) {
+        resultsDiv.innerHTML = '<div class="no-results">Žádné výsledky</div>';
+        return;
+    }
+    
+    filtered.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'search-result';
+        
+        const typeText = item.type === 'student' ? 'Student' : 
+                        item.type === 'class' ? 'Třída' : 'Učitel';
+        
+        div.innerHTML = `
+            <div class="search-result-type">${typeText}</div>
+            <div class="search-result-name">${item.name}</div>
+        `;
+        
+        div.onclick = () => {
+            window.location.href = item.file;
+        };
+        
+        resultsDiv.appendChild(div);
+    });
+}
+
+// Event listeners
+popup.addEventListener('mousedown', function(e){
+    if (e.target.classList.contains('close-btn')) return;
+    dragging = true;
+    offX = e.clientX - popup.offsetLeft;
+    offY = e.clientY - popup.offsetTop;
+    e.preventDefault();
+});
+
+seminarPopup.addEventListener('mousedown', function(e){
+    if (e.target.classList.contains('seminar-close-btn')) return;
+    dragging = true;
+    offX = e.clientX - seminarPopup.offsetLeft;
+    offY = e.clientY - seminarPopup.offsetTop;
+    e.preventDefault();
+});
+
+document.addEventListener('mouseup', function(){
+    dragging = false;
+});
+
+document.addEventListener('mousemove', function(e){
+    if (!dragging) return; 
+    const buffer = 20; 
+    let nx = e.clientX - offX; 
+    let ny = e.clientY - offY; 
+    nx = Math.min(Math.max(buffer, nx), window.innerWidth - popup.offsetWidth - buffer); 
+    ny = Math.min(Math.max(buffer, ny), window.innerHeight - popup.offsetHeight - buffer); 
+    
+    if (popup.style.display === 'block') {
+        popup.style.left = nx + 'px'; 
+        popup.style.top = ny + 'px';
+    }
+    
+    if (seminarPopup.style.display === 'flex') {
+        nx = Math.min(Math.max(buffer, nx), window.innerWidth - seminarPopup.offsetWidth - buffer); 
+        ny = Math.min(Math.max(buffer, ny), window.innerHeight - seminarPopup.offsetHeight - buffer); 
+        seminarPopup.style.left = nx + 'px'; 
+        seminarPopup.style.top = ny + 'px';
+    }
+});
+
+popupBg.addEventListener('click', function() {
+    closePopup();
+    closeSeminarPopup();
+    currentSeminarLessons = null;
+});
+
+// Close search modal when clicking outside
+document.getElementById('search-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeSearch();
+});
+
+// Close settings modal when clicking outside
+document.getElementById('settings-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeSettings();
+});
+
+// Search input handling
+document.getElementById('search-input').addEventListener('input', function(e) {
+    updateSearchResults(e.target.value);
+});
+
+// Enter key to select first result
+document.getElementById('search-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        const firstResult = document.querySelector('.search-result');
+        if (firstResult) {
+            firstResult.click();
+        }
+    }
+});
+
+// Spacebar navigation
+document.addEventListener('keydown', function(e) {
+    if (e.code === 'Space' && !e.target.tagName.toLowerCase().match(/input|textarea/)) {
+        e.preventDefault();
+        openSearch();
+    }
+    
+    // Close search with Escape
+    if (e.code === 'Escape') {
+        closeSearch();
+        closePopup();
+        closeSeminarPopup();
+        closeSettings();
+        currentSeminarLessons = null;
+    }
+    
+    // Open settings with Ctrl+,
+    if (e.ctrlKey && e.code === 'Comma') {
+        e.preventDefault();
+        openSettings();
+    }
+});
+
+// Prevent text selection when dragging
+document.addEventListener('selectstart', function(e) {
+    if (dragging) {
+        e.preventDefault();
+    }
+});
+</script>
+</body></html>

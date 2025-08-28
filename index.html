@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vyhledávání rozvrhů</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+    --primary-color: #2a62ff;
+    --secondary-color: #11457E;
+    --text-color: #2e2e2e;
+    --light-text: #666;
+    --background-color: #f2f3f7;
+    --card-background: #fff;
+    --border-color: #ddd;
+}
+
+.dark-mode {
+    --primary-color: #4a86ff;
+    --secondary-color: #6ba3ff;
+    --text-color: #f0f0f0;
+    --light-text: #aaa;
+    --background-color: #1a1a1a;
+    --card-background: #2a2a2a;
+    --border-color: #444;
+}
+
+* {
+    box-sizing: border-box;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+html, body {
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: 'Poppins', sans-serif;
+    background: var(--background-color);
+    color: var(--text-color);
+    display: flex;
+    flex-direction: column;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    width: 100%;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.header h1 {
+    margin: 0 0 10px;
+    font-size: 2.2rem;
+    color: var(--primary-color);
+}
+
+.header p {
+    margin: 0;
+    color: var(--light-text);
+    font-size: 1.1rem;
+}
+
+.search-container {
+    background: var(--card-background);
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    margin-bottom: 20px;
+}
+
+.search-input {
+    width: 100%;
+    padding: 15px 20px;
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    font-size: 16px;
+    outline: none;
+    margin-bottom: 20px;
+    background: var(--card-background);
+    color: var(--text-color);
+    transition: border 0.2s;
+}
+
+.search-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(42, 98, 255, 0.2);
+}
+
+.results-container {
+    max-height: 60vh;
+    overflow-y: auto;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.results-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.results-container::-webkit-scrollbar-track {
+    background: var(--background-color);
+    border-radius: 3px;
+}
+
+.results-container::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 3px;
+}
+
+.result-item {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--card-background);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.result-item:hover {
+    background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+}
+
+.result-item:last-child {
+    border-bottom: none;
+}
+
+.result-type {
+    font-weight: 600;
+    color: var(--primary-color);
+    font-size: 0.9rem;
+    margin-bottom: 6px;
+}
+
+.result-name {
+    font-size: 1.2rem;
+    font-weight: 500;
+}
+
+.no-results {
+    text-align: center;
+    padding: 40px;
+    color: var(--light-text);
+    font-style: italic;
+}
+
+.footer {
+    text-align: center;
+    margin-top: 30px;
+    color: var(--light-text);
+    font-size: 0.9rem;
+}
+
+.mode-toggle {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 8px 15px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--text-color);
+    transition: all 0.2s;
+}
+
+.mode-toggle:hover {
+    background: var(--primary-color);
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+    }
+    
+    .header h1 {
+        font-size: 1.8rem;
+    }
+    
+    .search-container {
+        padding: 20px;
+    }
+    
+    .result-item {
+        padding: 15px;
+    }
+}
+</style>
+</head>
+<body>
+<div class="mode-toggle" onclick="toggleDarkMode()">🌙</div>
+<div class="container">
+<div class="header">
+<h1>Vyhledávání rozvrhů</h1>
+<p>Vyhledávejte mezi studenty, třídami a učiteli</p>
+</div>
+
+<div class="search-container">
+<input type="text" id="searchInput" class="search-input" placeholder="Hledat studenta, třídu nebo učitele..." autocomplete="off">
+
+<div class="results-container">
+<div id="results"></div>
+</div>
+</div>
+
+<div class="footer">
+<p>Vygenerováno pomocí rozvrhového systému</p>
+</div>
+</div>
+
+<script>
+// Prevent flash of unstyled content
+document.documentElement.style.visibility = 'hidden';
+
+// Load all timetable files
+const timetables = [
+    {type:"class", name:"3B4", file:"class_3B4.html"},
+    {type:"student", name:"Michal Beran", file:"student_Michal_Beran.html"},
+    {type:"student", name:"Alžběta Bodová", file:"student_Alžběta_Bodová.html"},
+    {type:"student", name:"Charlotte Bratrů", file:"student_Charlotte_Bratrů.html"},
+    {type:"student", name:"Eliška Budíková", file:"student_Eliška_Budíková.html"},
+    {type:"student", name:"Barbora Coufalová", file:"student_Barbora_Coufalová.html"},
+    {type:"student", name:"Sebastian Drábek", file:"student_Sebastian_Drábek.html"},
+    {type:"student", name:"Valérie Ďulíková", file:"student_Valérie_Ďulíková.html"},
+    {type:"student", name:"Štěpán Hájek", file:"student_Štěpán_Hájek.html"},
+    {type:"student", name:"Gabriela Hanousková", file:"student_Gabriela_Hanousková.html"},
+    {type:"student", name:"Filip Kašpar", file:"student_Filip_Kašpar.html"},
+    {type:"student", name:"Petra Kojecká", file:"student_Petra_Kojecká.html"},
+    {type:"student", name:"Michaela Křivánková", file:"student_Michaela_Křivánková.html"},
+    {type:"student", name:"Theodora Lacová", file:"student_Theodora_Lacová.html"},
+    {type:"student", name:"Albert Lindner", file:"student_Albert_Lindner.html"},
+    {type:"student", name:"Sára Mannová", file:"student_Sára_Mannová.html"},
+    {type:"student", name:"Dean Michajlov", file:"student_Dean_Michajlov.html"},
+    {type:"student", name:"Samuel Monteux", file:"student_Samuel_Monteux.html"},
+    {type:"student", name:"Natálie Morávková", file:"student_Natálie_Morávková.html"},
+    {type:"student", name:"Helena Navrátilová", file:"student_Helena_Navrátilová.html"},
+    {type:"student", name:"Klára Pouchlá", file:"student_Klára_Pouchlá.html"},
+    {type:"student", name:"Lucie Řehořková", file:"student_Lucie_Řehořková.html"},
+    {type:"student", name:"David Saitl", file:"student_David_Saitl.html"},
+    {type:"student", name:"Barbora Schalková", file:"student_Barbora_Schalková.html"},
+    {type:"student", name:"Klára Swierková", file:"student_Klára_Swierková.html"},
+    {type:"student", name:"Tereza Šamánková", file:"student_Tereza_Šamánková.html"},
+    {type:"student", name:"Jakub Šimek", file:"student_Jakub_Šimek.html"},
+    {type:"student", name:"Zdeněk Šoula", file:"student_Zdeněk_Šoula.html"},
+    {type:"student", name:"Ladislav Tomáš", file:"student_Ladislav_Tomáš.html"},
+    {type:"student", name:"Anna Ubrová", file:"student_Anna_Ubrová.html"},
+    {type:"student", name:"Marie Vičarová", file:"student_Marie_Vičarová.html"},
+    {type:"student", name:"Karolína Zdubová", file:"student_Karolína_Zdubová.html"},
+    {type:"student", name:"Jan Zlatníček", file:"student_Jan_Zlatníček.html"},
+    {type:"teacher", name:"Lenka Bartoňková", file:"teacher_Lenka_Bartoňková.html"},
+    {type:"teacher", name:"Jan Bernard", file:"teacher_Jan_Bernard.html"},
+    {type:"teacher", name:"Karolína Derahová", file:"teacher_Karolína_Derahová.html"},
+    {type:"teacher", name:"Monika Hanáčková", file:"teacher_Monika_Hanáčková.html"},
+    {type:"teacher", name:"Jana Henzlová", file:"teacher_Jana_Henzlová.html"},
+    {type:"teacher", name:"Monika Hodinková", file:"teacher_Monika_Hodinková.html"},
+    {type:"teacher", name:"Benjamín Juráň", file:"teacher_Benjamín_Juráň.html"},
+    {type:"teacher", name:"Martina Lipková", file:"teacher_Martina_Lipková.html"},
+    {type:"teacher", name:"Noemi Matoušková", file:"teacher_Noemi_Matoušková.html"},
+    {type:"teacher", name:"Tomáš Mráček", file:"teacher_Tomáš_Mráček.html"},
+    {type:"teacher", name:"Eva Navrátilová Vystavělová", file:"teacher_Eva_Navrátilová_Vystavělová.html"},
+    {type:"teacher", name:"Lenka Pavlíčková", file:"teacher_Lenka_Pavlíčková.html"},
+    {type:"teacher", name:"Jan Popelka", file:"teacher_Jan_Popelka.html"},
+    {type:"teacher", name:"Jana Pučová", file:"teacher_Jana_Pučová.html"},
+    {type:"teacher", name:"Marcos Sapró Babiloni", file:"teacher_Marcos_Sapró_Babiloni.html"},
+    {type:"teacher", name:"Dagmar Šašinková", file:"teacher_Dagmar_Šašinková.html"},
+    {type:"teacher", name:"Petra Šerek Kopečná", file:"teacher_Petra_Šerek_Kopečná.html"},
+    {type:"teacher", name:"Klára Imramovská Šolcová", file:"teacher_Klára_Imramovská_Šolcová.html"},
+    {type:"teacher", name:"Magda Špetíková", file:"teacher_Magda_Špetíková.html"},
+    {type:"teacher", name:"Alžběta Toop", file:"teacher_Alžběta_Toop.html"},
+    {type:"teacher", name:"Reino Toop", file:"teacher_Reino_Toop.html"},
+    {type:"teacher", name:"Jana Tudíková", file:"teacher_Jana_Tudíková.html"},
+    {type:"teacher", name:"Eva Valkounová", file:"teacher_Eva_Valkounová.html"},
+    {type:"teacher", name:"Simona Veselá", file:"teacher_Simona_Veselá.html"},
+    {type:"teacher", name:"Petra Vyskupová", file:"teacher_Petra_Vyskupová.html"},
+    {type:"teacher", name:"James John Warnes", file:"teacher_James_John_Warnes.html"},
+    {type:"teacher", name:"Eva Žáková", file:"teacher_Eva_Žáková.html"}
+];
+
+// Load dark mode preference
+function loadDarkMode() {
+    const darkMode = localStorage.getItem('darkMode') === 'true';
+    if (darkMode) document.body.classList.add('dark-mode');
+    document.documentElement.style.visibility = 'visible';
+}
+
+function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+    localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+}
+
+const searchInput = document.getElementById('searchInput');
+const resultsDiv = document.getElementById('results');
+
+function search() {
+    const query = searchInput.value.toLowerCase().trim();
+    resultsDiv.innerHTML = '';
+    
+    if (query.length < 1) {
+        resultsDiv.innerHTML = '<div class="no-results">Začněte psát pro vyhledávání</div>';
+        return;
+    }
+    
+    const matches = timetables.filter(t => 
+        t.name.toLowerCase().includes(query) ||
+        t.type.toLowerCase().includes(query)
+    );
+    
+    if (matches.length === 0) {
+        resultsDiv.innerHTML = '<div class="no-results">Žádné výsledky</div>';
+        return;
+    }
+    
+    matches.forEach(t => {
+        const div = document.createElement('div');
+        div.className = 'result-item';
+        
+        const typeText = t.type === 'student' ? 'Student' : 
+                        t.type === 'class' ? 'Třída' : 'Učitel';
+        
+        div.innerHTML = `
+            <div class="result-type">${typeText}</div>
+            <div class="result-name">${t.name}</div>
+        `;
+        
+        div.onclick = () => {
+            window.location.href = t.file;
+        };
+        
+        resultsDiv.appendChild(div);
+    });
+}
+
+// Event listeners
+searchInput.addEventListener('input', search);
+searchInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        const firstResult = document.querySelector('.result-item');
+        if (firstResult) {
+            firstResult.click();
+        }
+    }
+});
+
+// Spacebar focus
+document.addEventListener('keydown', function(e) {
+    if (e.code === 'Space' && !e.target.tagName.toLowerCase().match(/input|textarea/)) {
+        e.preventDefault();
+        searchInput.focus();
+    }
+});
+
+// Load dark mode and initial search
+loadDarkMode();
+search();
+</script>
+</body>
+</html>
