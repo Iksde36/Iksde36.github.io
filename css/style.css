@@ -154,19 +154,28 @@ a {
 
 .sub-title {
     text-align: left;
-    font-size: 175%;
-    font-weight: bold;
+    font-size: 225%;
+    margin-top: 2.5vw;
+    margin-left: 2vw;
 }
 
 .sub-text {
-    margin-top: 0.5vw;
-    margin-left: 2vw;
+    margin-top: 1vw;
+    margin-left: 4vw;
     font-size: 150%;
+}
+
+.sub-text-link {
+    text-decoration: black;
 }
 
 .text {
     font-size: 175%;
     margin-bottom: 1vw;
+}
+
+.text-paragraph {
+    margin-top: 2vw;
 }
 
 .filter-controls-body {
@@ -189,4 +198,12 @@ a {
     width: 100%;
     margin: 1vw 15vw;
     padding: 0;
+}
+
+.line {
+    margin-top: 4vh;
+    margin-bottom: 1vw;
+    height: 1vh;
+    border-radius: 1vw;
+    background: #419eff;
 }
