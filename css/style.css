@@ -1,0 +1,226 @@
+@font-face {
+    font-family: 'MyFont';
+    src: local('LENYA69'),
+    url('AVIA.ttf') format('truetype');
+}
+
+html, body {
+    height: 100%;
+    margin: 0 0 0 0;
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+}
+
+body::-webkit-scrollbar {
+    display: none;
+}
+
+a {
+    text-decoration: none;
+    color: black;
+}
+
+.navbar-container {
+    display: grid;
+    text-align: center;
+    margin-top: 1vw;
+    align-content: start;
+    grid-auto-flow: column;
+    width: 100%;
+}
+
+.navbar-item {
+    font-size: 150%;
+}
+
+.navbar-link {
+    font-size: 110%;
+    display: block;
+    width: 100%;
+    text-align: center;
+}
+
+.image-wrap {
+    position: relative;
+}
+
+.image {
+    width: 100%;
+    display: block;
+    border-radius: 1vw;
+    transition: opacity .5s;
+}
+
+.image-overlay {
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 1vw;
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity .5s;
+}
+
+.image-wrap:hover .image {
+    opacity: 0;
+    transition: opacity .5s;
+}
+
+.image-wrap:hover .image-overlay {
+    opacity: 1;
+    transition: opacity .5s;
+}
+
+.image-overlay-text-container {
+    padding: 0vw 1.5vw 0vw 1.5vw;
+    display: flex;
+    flex-flow: column;
+    height: 100%;
+}
+
+.image-overlay-text {
+    padding-top: 0.5vw;
+    font-size: 1rem;
+    text-align: left;
+}
+
+.image-overlay-text-top {
+    padding-top: 1.5vw;
+}
+
+.image-overlay-link-container {
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    display: flex;
+}
+
+.image-overlay-link {
+    text-align: center;
+    color: white;
+    font-size: 1.5rem;
+    transition: color 0.5s;
+}
+
+.image-overlay-link:hover {
+    color: #9cff00;
+    transition: color 1s;
+}
+
+.card {
+    background-color: #419eff;
+    border-radius: 0.75vw;
+    color: white;
+    padding: 0 .75vw;
+}
+
+.card-title {
+    font-size: 150%;
+    padding-top: 0.5vw;
+    padding-bottom: 0.75vw;
+}
+
+.card-text {
+    padding: 0.5vw;
+    font-size: 100%;
+    text-align: left;
+}
+
+.container {
+    display: flex;
+    justify-content: center;
+}
+
+.grid-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr; /* 3 columns by default */
+    text-align: center;
+    margin-top: 1vw;
+    margin-bottom: 1vw;
+    gap: 1vw;
+    align-content: start;
+    grid-auto-flow: dense;
+}
+
+.box {
+    max-width: 70vw;
+    font-family: "MyFont";
+    text-align: left;
+    /*text-align: justify;
+    text-justify: inter-word;*/
+}
+
+.title {
+    font-size: 300%;
+    text-align: center;
+    margin-top: 2vw;
+    margin-bottom: 1.25vw;
+}
+
+.title2 {
+    color: rgba(178, 34, 34, 0.87);
+    font-size: 150%;
+    text-align: center;
+    margin-bottom: 1vw;
+}
+
+.sub-title {
+    text-align: left;
+    font-size: 225%;
+    margin-top: 2.5vw;
+    margin-left: 2vw;
+}
+
+.sub-text {
+    margin-top: 1vw;
+    margin-left: 4vw;
+    font-size: 150%;
+}
+
+.sub-text-link {
+    text-decoration: black;
+}
+
+.text {
+    font-size: 175%;
+    margin-bottom: 1vw;
+}
+
+.text-paragraph {
+    margin-top: 2vw;
+}
+
+.filter-controls-body {
+    background: #9f9f9f;
+    position: sticky;
+    top: 0;
+    width: 100%;
+    height: 10vh;
+    z-index: 100;
+    display: flex;
+}
+
+.filter-controls-container {
+    width: 70%;
+}
+
+.searchbar {
+    height: 100%;
+    width: 100%;
+    margin: 1vw 15vw;
+    padding: 0;
+}
+
+.line {
+    margin-top: 4vh;
+    margin-bottom: 1vw;
+    height: 1vh;
+    border-radius: 1vw;
+    background: #419eff;
+}
+
+/* Media query for screens under 1080px */
+@media (max-width: 1079.98px) {
+    .grid-container {
+        grid-template-columns: 1fr 1fr; /* 2 columns under 1080px */
+    }
+}
