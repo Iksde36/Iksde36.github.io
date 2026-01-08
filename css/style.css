@@ -236,12 +236,6 @@ a {
     text-align: right;
 }
 
-@media (min-width: 2100px) {
-    .grid-container {
-        grid-template-columns: 1fr 1fr 1fr 1fr;
-    }
-}
-
 @media (max-width: 1000px) {
     .grid-container {
         grid-template-columns: 1fr 1fr;
