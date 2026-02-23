@@ -236,6 +236,18 @@ a {
     text-align: right;
 }
 
+@media (min-width: 2100px) {
+    body {
+        font-size: 120%;
+    }
+    .image-overlay-text  {
+        font-size: 115%;!important;
+    }
+    .image-overlay-link {
+        font-size: 150%;!important;
+    }
+}
+
 @media (max-width: 1000px) {
     .grid-container {
         grid-template-columns: 1fr 1fr;
